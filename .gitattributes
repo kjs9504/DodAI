@@ -1,0 +1,17 @@
+# 모든 텍스트 파일은 플랫폼별 줄바꿈 자동 정규화
+* text=auto
+
+# Unity 텍스트 에셋들
+*.cs     text
+*.shader text
+*.unity  text
+*.prefab text
+*.mat    text
+*.asset  text
+*.meta   text
+
+# 나머지 바이너리
+*.png    binary
+*.jpg    binary
+*.fbx    binary
+*.wav    binary
