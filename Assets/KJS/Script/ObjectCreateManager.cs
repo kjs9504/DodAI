@@ -1,27 +1,38 @@
+using System.Linq;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.XR.Hands;  // Handedness
+using UnityEngine.SubsystemsImplementation;
+using UnityEngine.XR.Hands;    // XRHandSubsystem, XRHand, Handedness, XRHandJointID
 
 [DisallowMultipleComponent]
 public class ObjectCreateManager : MonoBehaviour
 {
-    [Tooltip("AnyPalmUpDetector를 할당하세요.")]
+    [Header("1) AnyPalmUpDetector를 할당하세요.")]
     public AnyPalmUpDetector detector;
 
-    [Tooltip("스폰할 프리팹")]
+    [Header("2) 스폰할 프리팹")]
     public GameObject prefab;
 
-    [Tooltip("바닥 Y 좌표 (예: 0)")]
+    [Header("3) 바닥 Y 좌표 (예: 0)")]
     public float groundY = 0f;
 
-    [Tooltip("손 높이가 이 값(미터)까지 올라갈 때까지 체크")]
+    [Header("4) 시선 기준 생성 거리 (미터)")]
+    public float spawnDistance = 1.0f;
+
+    [Header("5) 손 높이가 이 값까지 올라갈 때 보간 (미터)")]
     public float maxHandHeight = 1.5f;
 
-    [Tooltip("오브젝트 최고 상승 높이")]
+    [Header("6) 오브젝트 최고 상승 높이 (미터)")]
     public float maxRiseHeight = 2f;
 
-    GameObject _instance;
+    [Header("7) 감지할 관절 (보통 Palm)")]
+    public XRHandJointID jointID = XRHandJointID.Palm;
 
-    void Start()
+    GameObject _instance;
+    XRHandSubsystem _handSubsystem;
+    Handedness _currentUpHand = Handedness.Invalid;   // 이벤트로 받은 손을 저장
+
+    void Awake()
     {
         if (detector == null)
         {
@@ -29,43 +40,77 @@ public class ObjectCreateManager : MonoBehaviour
             enabled = false;
             return;
         }
+        // XRHandSubsystem 캐싱
+        var subsystems = new List<XRHandSubsystem>();
+        SubsystemManager.GetSubsystems(subsystems);
+        _handSubsystem = subsystems.FirstOrDefault(s => s.running)
+                       ?? subsystems.FirstOrDefault();
+        if (_handSubsystem == null)
+        {
+            Debug.LogError("XRHandSubsystem을 찾을 수 없습니다.", this);
+            enabled = false;
+        }
+    }
+
+    void OnEnable()
+    {
         detector.OnAnyPalmUpChanged += OnAnyPalmUpChanged;
     }
 
+    void OnDisable()
+    {
+        detector.OnAnyPalmUpChanged -= OnAnyPalmUpChanged;
+    }
+
+    // ① 이벤트 파라미터 hand 를 바로 _currentUpHand 에 저장
     void OnAnyPalmUpChanged(bool anyUp, Handedness hand)
     {
+        Debug.Log($"OnAnyPalmUpChanged → anyUp: {anyUp}, hand: {hand}");
         if (anyUp && _instance == null)
         {
-            // 바닥에 생성
-            Vector3 spawnPos = new Vector3(0f, groundY, 0f);
-            _instance = Instantiate(prefab, spawnPos, Quaternion.identity);
+            _currentUpHand = hand;
+            SpawnObject();
         }
         else if (!anyUp && _instance != null)
         {
             Destroy(_instance);
             _instance = null;
+            _currentUpHand = Handedness.Invalid;
         }
+    }
+
+    // (스폰 로직 분리)
+    void SpawnObject()
+    {
+        var cam = Camera.main;
+        if (cam == null)
+        {
+            Debug.LogWarning("Main Camera를 찾을 수 없습니다.");
+            return;
+        }
+
+        Vector3 forward = cam.transform.forward.normalized;
+        Vector3 spawnPos = cam.transform.position + forward * spawnDistance;
+        spawnPos.y = groundY;
+
+        Quaternion spawnRot = Quaternion.LookRotation(forward, Vector3.up);
+        _instance = Instantiate(prefab, spawnPos, spawnRot);
     }
 
     void Update()
     {
-        if (_instance == null)
+        // ② _currentUpHand 이 유효할 때만 Y 보간
+        if (_instance == null || _currentUpHand == Handedness.Invalid)
             return;
 
-        // 올라간 손의 Transform
-        Transform upAnchor = null;
-        if (detector.CurrentUpHand == Handedness.Left)
-            upAnchor = detector.leftRecognizer.palmAnchor;
-        else if (detector.CurrentUpHand == Handedness.Right)
-            upAnchor = detector.rightRecognizer.palmAnchor;
+        XRHand hand = (_currentUpHand == Handedness.Left)
+                      ? _handSubsystem.leftHand
+                      : _handSubsystem.rightHand;
 
-        if (upAnchor == null)
+        if (!hand.GetJoint(jointID).TryGetPose(out Pose pose))
             return;
 
-        // 손 높이만큼 0~1 정규화
-        float handY = upAnchor.position.y;
-        float t = Mathf.Clamp01((handY - groundY) / maxHandHeight);
-        // 바닥Y에서 maxRiseHeight까지 보간
+        float t = Mathf.Clamp01((pose.position.y - groundY) / maxHandHeight);
         float newY = groundY + t * maxRiseHeight;
 
         var p = _instance.transform.position;
