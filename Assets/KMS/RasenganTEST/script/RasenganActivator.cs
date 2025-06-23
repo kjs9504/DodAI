@@ -25,6 +25,10 @@ public class RasenganActivator : MonoBehaviour
     [SerializeField] private AudioClip rasenganClip;
     [SerializeField] private AudioClip rockClip;
 
+    [Header("Microphone Recorder")]
+    // 인스펙터에서 MicRecorder 컴포넌트를 할당하세요
+    [SerializeField] private MicRecorder micRecorder;
+
     private enum RasenganState { Idle, Ready, Active }
     private RasenganState currentState = RasenganState.Idle;
 
@@ -74,6 +78,10 @@ public class RasenganActivator : MonoBehaviour
         currentState = RasenganState.Active;
         PlaySound(rasenganClip);
 
+        // ▶ 라센간 생성 시 녹음 시작
+        if (micRecorder != null)
+            micRecorder.StartRecording();
+
         Transform palmTr = handVisualRight.GetTransformByHandJointId(Oculus.Interaction.Input.HandJointId.HandPalm);
         Vector3 spawnPos = palmTr.position - palmTr.up * 0.15f;
 
@@ -88,6 +96,10 @@ public class RasenganActivator : MonoBehaviour
         if (currentState != RasenganState.Active || currentRasengan == null) return;
 
         PlaySound(rockClip);
+
+        // ▶ 라센간 파괴 직전에 녹음 중지 및 저장
+        if (micRecorder != null)
+            micRecorder.StopRecordingAndSave();
 
         if (followCor != null)
         {
