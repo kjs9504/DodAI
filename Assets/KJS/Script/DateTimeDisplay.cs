@@ -34,14 +34,11 @@ public class DateTimeDisplay : MonoBehaviour
     private void UpdateTime()
     {
         DateTime now = DateTime.Now;
-        // 날짜
-        string date = now.ToString("yyyy-MM-dd");             // ex: 2025-06-17
-        // 요일 (한국어)
-        string weekday = now.ToString("dddd", CultureInfo.CreateSpecificCulture("ko-KR"));
-        // 시간
-        string time = now.ToString("HH:mm:ss");               // ex: 14:23:45
 
-        uiText.text = $"날짜: {date} ({weekday})\n시간: {time}";
+        // 시간과 분만 "HH:mm" 형식으로 가져옴 (예: "14:23")
+        string time = now.ToString("HH:mm");
+
+        uiText.text = time;
     }
 }
 
