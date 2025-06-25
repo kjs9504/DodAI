@@ -5607,8 +5607,10 @@ MonoBehaviour:
   detector: {fileID: 1552150029}
   prefab: {fileID: 1129778165}
   groundY: 0
+  spawnDistance: 1
   maxHandHeight: 1.5
   maxRiseHeight: 2
+  jointID: 2
 --- !u!114 &1552150029
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5621,8 +5623,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e3b813494c6a8574abecc569e4a00e48, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  leftRecognizer: {fileID: 577489142}
-  rightRecognizer: {fileID: 1936851584}
+  jointID: 2
+  upDotThreshold: 0.5
 --- !u!4 &1552150030
 Transform:
   m_ObjectHideFlags: 0
@@ -7758,7 +7760,7 @@ MonoBehaviour:
   m_CheckFor3DOcclusion: 0
   m_BlockingMask:
     serializedVersion: 2
-    m_Bits: 2147483647
+    m_Bits: 4294967295
   m_RaycastTriggerInteraction: 1
 --- !u!114 &2105827458
 MonoBehaviour:
