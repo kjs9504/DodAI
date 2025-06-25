@@ -72,6 +72,7 @@
       },
       "url": "https://packages.unity.com"
     },
+<<<<<<< HEAD
     "com.meta.xr.sdk.platform": {
       "version": "77.0.0",
       "depth": 1,
@@ -95,12 +96,15 @@
       "dependencies": {},
       "url": "https://packages.unity.com"
     },
+=======
+>>>>>>> UI2
     "com.unity.2d.sprite": {
       "version": "1.0.0",
       "depth": 0,
       "source": "builtin",
       "dependencies": {}
     },
+<<<<<<< HEAD
     "com.unity.ai.navigation": {
       "version": "2.0.7",
       "depth": 2,
@@ -110,6 +114,8 @@
       },
       "url": "https://packages.unity.com"
     },
+=======
+>>>>>>> UI2
     "com.unity.burst": {
       "version": "1.8.21",
       "depth": 2,

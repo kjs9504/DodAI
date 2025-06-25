@@ -61,7 +61,7 @@ public class MicRecorder : MonoBehaviour
         SaveWav(filename, trimmedClip);
 
         // ✅ 백엔드 전송 시작
-        StartCoroutine(audioSender.SendWavToServer(filename));
+        //StartCoroutine(audioSender.SendWavToServer(filename));
     }
 
     private void SaveWav(string filename, AudioClip clip)
