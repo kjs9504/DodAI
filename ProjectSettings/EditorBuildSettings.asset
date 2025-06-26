@@ -15,11 +15,8 @@ EditorBuildSettings:
     path: Assets/KMS/RasenganTEST/scene/Rasengan.unity
     guid: 36fa00fd5fdc43e44b6380a86b5dcf05
   - enabled: 1
-    path: Assets/KMS/RasenganTEST/scene/VirtualScene.unity
+    path: Assets/KMS/RasenganTEST/scene/Thumbnail.unity
     guid: 66bf7652e1a5c9c429143f697c218088
-  - enabled: 1
-    path: Assets/KMS/RasenganTEST/scene/DodAI_test1.unity
-    guid: 41b621dd5a64fca4da3b64d6e91df18b
   m_configObjects:
     Unity.XR.Oculus.Settings: {fileID: 11400000, guid: 069fe719dc6758f44b96f20e32e575eb, type: 2}
     Unity.XR.WindowsMR.Settings: {fileID: 11400000, guid: dc5a169419fa04987b057f65238cf3ba, type: 2}
