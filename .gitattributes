@@ -1,17 +1,19 @@
-# 모든 텍스트 파일은 플랫폼별 줄바꿈 자동 정규화
+# 1) 모든 텍스트 파일은 플랫폼별 줄바꿈 자동 정규화
 * text=auto
 
-# Unity 텍스트 에셋들
-*.cs     text
-*.shader text
-*.unity  text
-*.prefab text
-*.mat    text
-*.asset  text
-*.meta   text
+# 2) Unity 텍스트 에셋들 (YAML 직렬화 시)
+*.cs       text
+*.shader   text
+*.mat      text
+*.meta     text
 
-# 나머지 바이너리
-*.png    binary
-*.jpg    binary
-*.fbx    binary
-*.wav    binary
+# 3) Smart Merge 드라이버 지정
+*.unity    text merge=unityyamlmerge
+*.prefab   text merge=unityyamlmerge
+*.asset    text merge=unityyamlmerge
+
+# 4) 순수 바이너리 파일
+*.png      binary
+*.jpg      binary
+*.fbx      binary
+*.wav      binary
