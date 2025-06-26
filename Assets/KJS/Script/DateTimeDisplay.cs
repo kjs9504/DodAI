@@ -36,8 +36,7 @@ public class DateTimeDisplay : MonoBehaviour
         DateTime now = DateTime.Now;
 
         // 시간과 분만 "HH:mm" 형식으로 가져옴 (예: "14:23")
-        string time = now.ToString("HH:mm");
-
+        string time = now.ToString("hh:mm tt", CultureInfo.InvariantCulture).ToLower();
         uiText.text = time;
     }
 }
