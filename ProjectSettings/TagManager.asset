@@ -3,7 +3,18 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 3
-  tags: []
+  tags:
+  - QDSUIBackplateGradient
+  - QDSUIToggleBorderlessButton
+  - QDSUIToggleSwitch
+  - QDSUITooltip
+  - QDSUISharedThemeColor
+  - QDSUIAccentColor
+  - QDSUIBorderlessButton
+  - QDSUIToggleButton
+  - QDSUISecondaryButton
+  - QDSUIIcon
+  - QDSUITextSecondaryColor
   layers:
   - Default
   - TransparentFX
@@ -13,7 +24,7 @@ TagManager:
   - UI
   - Spawner Contact
   - Placeable Surface
-  - ThumbnailLayer
+  - VirtualSceneLayer
   - 
   - 
   - 
