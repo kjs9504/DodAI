@@ -7,5 +7,7 @@ public class SceneLoader : MonoBehaviour
     {
         // "VirtualScene" 씬을 Additive로 불러오기
         SceneManager.LoadScene("VirtualScene", LoadSceneMode.Additive);
+
     }
+
 }
