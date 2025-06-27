@@ -7,7 +7,14 @@ using System.Collections;
 public class TodoItem : MonoBehaviour,
     IBeginDragHandler, IDragHandler, IEndDragHandler
 {
-    const float DELETE_THRESHOLD = 0.3f;
+    [Header("Swipe Settings")]
+    [Tooltip("전체 너비 대비 드래그 임계치(0~1)")]
+    public float deleteThreshold = 0.3f;
+    [Tooltip("드래그 후 이동시킬 거리 (픽셀)")]
+    public float moveDistance = 150f;
+    [Tooltip("애니메이션 지속 시간 (초)")]
+    public float animDuration = 0.2f;
+
     RectTransform rt;
     CanvasGroup cg;
     ScrollRect parentScroll;
@@ -29,7 +36,6 @@ public class TodoItem : MonoBehaviour,
 
     public void OnDrag(PointerEventData e)
     {
-        // (수평/수직 구분 로직 생략)
         rt.anchoredPosition += new Vector2(e.delta.x, 0);
     }
 
@@ -37,31 +43,31 @@ public class TodoItem : MonoBehaviour,
     {
         parentScroll.vertical = true;
         float width = ((RectTransform)rt.parent).rect.width;
-        if (Mathf.Abs(rt.anchoredPosition.x) > width * DELETE_THRESHOLD
-            && rt.anchoredPosition.x > 0)
-            DeleteSelf();
+
+        if (Mathf.Abs(rt.anchoredPosition.x) > width * deleteThreshold)
+        {
+            float dir = Mathf.Sign(rt.anchoredPosition.x);
+            MoveSelf(dir * moveDistance);
+        }
         else
+        {
             ReturnToPlace();
+        }
     }
 
-    // ───────────────────────────────────────────────
-    // 1) 원위치로 부드럽게 복귀
     public void ReturnToPlace()
     {
         StopAllCoroutines();
-        StartCoroutine(AnimateMove(rt.anchoredPosition, originalPos, 0.2f));
+        StartCoroutine(AnimateMove(rt.anchoredPosition, originalPos, animDuration));
     }
 
-    // 2) 오른쪽으로 밀어내면서 동시에 페이드아웃 → 삭제
-    public void DeleteSelf()
+    public void MoveSelf(float distance)
     {
         StopAllCoroutines();
-        Vector2 targetPos = new Vector2(rt.rect.width, originalPos.y);
-        StartCoroutine(AnimateDelete(rt.anchoredPosition, targetPos, 0.2f));
+        Vector2 target = originalPos + new Vector2(distance, 0);
+        StartCoroutine(AnimateMove(rt.anchoredPosition, target, animDuration));
     }
 
-    // ───────────────────────────────────────────────
-    // 수평 이동용 코루틴 (Ease-Out-Quad)
     IEnumerator AnimateMove(Vector2 from, Vector2 to, float duration)
     {
         float elapsed = 0f;
@@ -69,29 +75,11 @@ public class TodoItem : MonoBehaviour,
         {
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / duration);
-            // Ease-Out-Quad: f(t) = 1 − (1−t)²
-            float ease = 1f - (1f - t) * (1f - t);
+            float ease = 1f - (1f - t) * (1f - t);  // Ease-Out-Quad
             rt.anchoredPosition = Vector2.Lerp(from, to, ease);
             yield return null;
         }
         rt.anchoredPosition = to;
-    }
-
-    // 수평 이동 + 페이드아웃용 코루틴
-    IEnumerator AnimateDelete(Vector2 from, Vector2 to, float duration)
-    {
-        float elapsed = 0f;
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / duration);
-            float ease = 1f - (1f - t) * (1f - t);
-            rt.anchoredPosition = Vector2.Lerp(from, to, ease);
-            cg.alpha = Mathf.Lerp(1f, 0f, ease);
-            yield return null;
-        }
-        cg.alpha = 0f;
-        Destroy(gameObject);
     }
 }
 
