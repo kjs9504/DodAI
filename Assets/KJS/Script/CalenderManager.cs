@@ -13,9 +13,6 @@ public class CalenderManager : MonoBehaviour
     public GameObject dayCellPrefab;            // TextMeshProUGUI 포함된 캘린더 셀 프리팹
     public TextMeshProUGUI monthLabel;          // “2025년 06월” 등 표시할 텍스트
 
-    [Header("XR UI 설정")]
-    public XRRayInteractor rayInteractor;       // XR 레이 캐스터 (EventSystem에 XRUIInputModule 설정)
-
     private int year, month;
     private Queue<GameObject> cellPool = new Queue<GameObject>();
 
@@ -103,20 +100,5 @@ public class CalenderManager : MonoBehaviour
         {
             return Instantiate(dayCellPrefab, gridParent);
         }
-    }
-
-    // UI 버튼(또는 XR 클릭)에 연결
-    public void OnNextMonth()
-    {
-        month++;
-        if (month > 12) { month = 1; year++; }
-        DrawCalendar();
-    }
-
-    public void OnPrevMonth()
-    {
-        month--;
-        if (month < 1) { month = 12; year--; }
-        DrawCalendar();
     }
 }
