@@ -6,7 +6,7 @@ using UnityEngine;
 public class RasenganActivator : MonoBehaviour
 {
     [Header("Gesture Events")]
-    [SerializeField] private SelectorUnityEventWrapper ninjaGestureRight;
+    [SerializeField] private SelectorUnityEventWrapper thumbsUpGestureRight;
     [SerializeField] private SelectorUnityEventWrapper rasenganGestureRight;
     [SerializeField] private SelectorUnityEventWrapper rockPoseRight;
 
@@ -26,7 +26,6 @@ public class RasenganActivator : MonoBehaviour
     [SerializeField] private AudioClip rockClip;
 
     [Header("Microphone Recorder")]
-    // 인스펙터에서 MicRecorder 컴포넌트를 할당하세요
     [SerializeField] private MicRecorder micRecorder;
 
     private enum RasenganState { Idle, Ready, Active }
@@ -38,7 +37,7 @@ public class RasenganActivator : MonoBehaviour
 
     void Start()
     {
-        ninjaGestureRight.WhenSelected.AddListener(OnNinjaGesture);
+        thumbsUpGestureRight.WhenSelected.AddListener(OnNinjaGesture);     // ← 여기 수정됨
         rasenganGestureRight.WhenSelected.AddListener(OnRasenganGesture);
         rockPoseRight.WhenSelected.AddListener(OnRockPoseGesture);
     }
@@ -78,9 +77,10 @@ public class RasenganActivator : MonoBehaviour
         currentState = RasenganState.Active;
         PlaySound(rasenganClip);
 
-        // ▶ 라센간 생성 시 녹음 시작
         if (micRecorder != null)
             micRecorder.StartRecording();
+        else
+            Debug.LogWarning("MicRecorder not assigned.");
 
         Transform palmTr = handVisualRight.GetTransformByHandJointId(Oculus.Interaction.Input.HandJointId.HandPalm);
         Vector3 spawnPos = palmTr.position - palmTr.up * 0.15f;
@@ -97,7 +97,6 @@ public class RasenganActivator : MonoBehaviour
 
         PlaySound(rockClip);
 
-        // ▶ 라센간 파괴 직전에 녹음 중지 및 저장
         if (micRecorder != null)
             micRecorder.StopRecordingAndSave();
 
@@ -119,7 +118,7 @@ public class RasenganActivator : MonoBehaviour
         while (currentRasengan != null)
         {
             currentRasengan.transform.position = Vector3.Lerp(
-                currentRasengan.transform.position, followPos(), 0.1f);
+                currentRasengan.transform.position, followPos(), Time.deltaTime * 10f); // 부드럽게
             yield return null;
         }
     }
