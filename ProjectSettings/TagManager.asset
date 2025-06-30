@@ -15,6 +15,7 @@ TagManager:
   - QDSUISecondaryButton
   - QDSUIIcon
   - QDSUITextSecondaryColor
+  - tntag
   layers:
   - Default
   - TransparentFX
