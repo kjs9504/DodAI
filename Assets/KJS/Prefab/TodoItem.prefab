@@ -150,6 +150,7 @@ GameObject:
   - component: {fileID: 2365120833147282245}
   - component: {fileID: 5691264181503562031}
   - component: {fileID: 4503490607715092744}
+  - component: {fileID: 2512205361247233849}
   m_Layer: 0
   m_Name: TodoItem
   m_TagString: QDSUIToggleBorderlessButton
@@ -317,6 +318,26 @@ MonoBehaviour:
   moveDistance: 150
   animDuration: 0.2
   deleteButton: {fileID: 3869066869406315599}
+--- !u!114 &2512205361247233849
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1150498837778987697}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 306cc8c2b49d7114eaa3623786fc2126, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_IgnoreLayout: 0
+  m_MinWidth: -1
+  m_MinHeight: -1
+  m_PreferredWidth: -1
+  m_PreferredHeight: -1
+  m_FlexibleWidth: -1
+  m_FlexibleHeight: -1
+  m_LayoutPriority: 1
 --- !u!1 &1803151450712597279
 GameObject:
   m_ObjectHideFlags: 0
@@ -384,8 +405,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Title
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: b908a50ae9074184eb185d6150c010eb, type: 2}
-  m_sharedMaterial: {fileID: 4574049461754374190, guid: b908a50ae9074184eb185d6150c010eb, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 7fc07862f94081547b31a872a0974745, type: 2}
+  m_sharedMaterial: {fileID: 4574049461754374190, guid: 7fc07862f94081547b31a872a0974745, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
