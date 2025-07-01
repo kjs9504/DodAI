@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/Editor/MeasureToolSettings.asset.meta
+guid: 7fc07862f94081547b31a872a0974745
+========
 guid: b908a50ae9074184eb185d6150c010eb
+>>>>>>>> origin/newMain:Assets/TextMesh Pro/Fonts/Maplestory Bold SDF.asset.meta
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000
