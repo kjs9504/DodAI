@@ -98,7 +98,7 @@ public class RasenganActivator : MonoBehaviour
         PlaySound(rockClip);
 
         if (micRecorder != null)
-            micRecorder.StopRecordingAndSave();
+            micRecorder.StopRecordingAndSend();
 
         if (followCor != null)
         {

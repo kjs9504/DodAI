@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using UnityEngine;
@@ -7,7 +7,7 @@ using TMPro;
 [Serializable]
 public class TodoItemData
 {
-    public string todo;   // "Àú³á ¾à¼Ó"
+    public string todo;   // "ì €ë… ì•½ì†"
     public string date;   // "2025-06-27"
     public string time;   // "17:00:00"
 }
@@ -15,64 +15,64 @@ public class TodoItemData
 [Serializable]
 public class TodoListData
 {
-    public List<TodoItemData> tasks;  // JSONÀÇ "tasks" ¹è¿­°ú ¸ÅÇÎ
+    public List<TodoItemData> tasks;  // JSONì˜ "tasks" ë°°ì—´ê³¼ ë§¤í•‘
 }
 
 public class TodoListManager : MonoBehaviour
 {
-    [Header("ScrollRect ¡æ Viewport ¡æ Content")]
-    public RectTransform content;    // ScrollRect.Content ¿¡ µå·¡±×
-    [Header("ÇÒ ÀÏ ¾ÆÀÌÅÛ Prefab")]
-    public GameObject itemPrefab;    // TodoItemPrefab ¿¡ µå·¡±×
+    [Header("ScrollRect â†’ Viewport â†’ Content")]
+    public RectTransform content;    // ScrollRect.Content ì— ë“œë˜ê·¸
+    [Header("í•  ì¼ ì•„ì´í…œ Prefab")]
+    public GameObject itemPrefab;    // TodoItemPrefab ì— ë“œë˜ê·¸
 
     void Start()
     {
-        // ¿¹½Ã: ½ÇÁ¦·Î´Â AI¿¡¼­ ¹ŞÀº JSON ¹®ÀÚ¿­À» ³Ö¾î È£ÃâÇÏ¼¼¿ä.
+        // ì˜ˆì‹œ: ì‹¤ì œë¡œëŠ” AIì—ì„œ ë°›ì€ JSON ë¬¸ìì—´ì„ ë„£ì–´ í˜¸ì¶œí•˜ì„¸ìš”.
         string jsonFromAI = @"{
           ""tasks"": [
-            { ""todo"": ""ÇÁ·ÎÁ§Æ® È¸ÀÇ"", ""date"": ""2025-04-30"", ""time"": ""04:00:00"" },
-            { ""todo"": ""¿îµ¿ ÇÏ±â"", ""date"": ""2024-03-13"", ""time"": ""20:00:00"" }
+            { ""todo"": ""í”„ë¡œì íŠ¸ íšŒì˜"", ""date"": ""2025-07-1"", ""time"": ""04:00:00"" },
+            { ""todo"": ""ìš´ë™ í•˜ê¸°"", ""date"": ""2025-07-4"", ""time"": ""20:00:00"" }
           ]
         }";
         LoadFromJson(jsonFromAI);
     }
 
     /// <summary>
-    /// AI ¡æ Unity·Î ¹ŞÀº JSONÀ» ÆÄ½ÌÇØ¼­ ÄÜÅÙÃ÷¿¡ ¾ÆÀÌÅÛ »ı¼º
+    /// AI â†’ Unityë¡œ ë°›ì€ JSONì„ íŒŒì‹±í•´ì„œ ì½˜í…ì¸ ì— ì•„ì´í…œ ìƒì„±
     /// </summary>
     public void LoadFromJson(string json)
     {
         if (string.IsNullOrEmpty(json) || content == null || itemPrefab == null)
             return;
 
-        // JSON ¡æ TodoListData
+        // JSON â†’ TodoListData
         var listData = JsonUtility.FromJson<TodoListData>(json);
-        // ±âÁ¸ ÀÚ½Ä Áö¿ì±â (ÇÊ¿äÇÏ´Ù¸é)
+        // ê¸°ì¡´ ìì‹ ì§€ìš°ê¸° (í•„ìš”í•˜ë‹¤ë©´)
         foreach (Transform child in content) Destroy(child.gameObject);
 
-        // °¢°¢ÀÇ TaskData¸¦ Æ÷¸ËÆÃ ÈÄ CreateItem È£Ãâ
+        // ê°ê°ì˜ TaskDataë¥¼ í¬ë§·íŒ… í›„ CreateItem í˜¸ì¶œ
         foreach (var t in listData.tasks)
         {
-            // "yyyy-MM-dd HH:mm:ss" Çü½ÄÀ¸·Î ÆÄ½Ì
+            // "yyyy-MM-dd HH:mm:ss" í˜•ì‹ìœ¼ë¡œ íŒŒì‹±
             DateTime dt = DateTime.ParseExact(
                 $"{t.date} {t.time}",
                 "yyyy-MM-dd HH:mm:ss",
                 CultureInfo.InvariantCulture
             );
 
-            // Æ÷¸Ë: "6¿ù 27ÀÏ 17½Ã¿¡ Àú³á ¾à¼Ó"
-            string formatted = $"{dt.Month}¿ù {dt.Day}ÀÏ {dt.Hour}½Ã¿¡ {t.todo}";
+            // í¬ë§·: "6ì›” 27ì¼ 17ì‹œì— ì €ë… ì•½ì†"
+            string formatted = $"{dt.Month}ì›” {dt.Day}ì¼ {dt.Hour}ì‹œì— {t.todo}";
             CreateItem(formatted);
         }
     }
 
     /// <summary>
-    /// ÅØ½ºÆ® ÇÏ³ª·Î TodoItemPrefab »ı¼º
+    /// í…ìŠ¤íŠ¸ í•˜ë‚˜ë¡œ TodoItemPrefab ìƒì„±
     /// </summary>
     public void CreateItem(string text)
     {
         var go = Instantiate(itemPrefab, content);
-        go.transform.localScale = Vector3.one;  // ½ºÄÉÀÏ ±úÁü ¹æÁö
+        go.transform.localScale = Vector3.one;  // ìŠ¤ì¼€ì¼ ê¹¨ì§ ë°©ì§€
 
         var tmp = go.GetComponentInChildren<TextMeshProUGUI>();
         if (tmp != null)

@@ -28,30 +28,52 @@ public class CalenderManager : MonoBehaviour
 
     public void DrawCalendar()
     {
-        // 2) 기존 셀 모두 비활성화하고 풀에 반환
+        // 1) 셀 풀링 및 초기화
         foreach (Transform child in gridParent)
         {
             child.gameObject.SetActive(false);
             cellPool.Enqueue(child.gameObject);
         }
 
-        // 3) 레이블 갱신
+        // 2) 레이블 갱신 (예: “2025년 07월”)
         monthLabel.text = new DateTime(year, month, 1)
                               .ToString("MMMM yyyy", CultureInfo.InvariantCulture);
 
-        // 4) 첫째 날 요일, 한 달 일수 계산
+        // 3) 첫째 날 요일, 한 달 일수 계산
         DateTime firstDay = new DateTime(year, month, 1);
-        int startWeekday = (int)firstDay.DayOfWeek;        // 일=0, 월=1...
+        int startWeekday = (int)firstDay.DayOfWeek;  // 일=0, 월=1...
         int daysInMonth = DateTime.DaysInMonth(year, month);
 
-        // 5) 빈 칸(월 첫 주 앞부분) 채우기
+        // **이전 달 정보 구하기**
+        int prevMonth = month - 1;
+        int prevYear = year;
+        if (prevMonth < 1) { prevMonth = 12; prevYear--; }
+        int daysInPrevMonth = DateTime.DaysInMonth(prevYear, prevMonth);
+
+        // 4) 앞쪽 빈 칸 → 이전 달 날짜로 채우기
         for (int i = 0; i < startWeekday; i++)
         {
-            var blank = GetCell();
-            blank.SetActive(true);
+            var cell = GetCell();
+            cell.SetActive(true);
+
+            // (1) 날짜 텍스트 세팅
+            int dayNumber = daysInPrevMonth - startWeekday + i + 1;
+            var txt = cell.GetComponentInChildren<TextMeshProUGUI>();
+            txt.text = dayNumber.ToString();
+            // (2) 텍스트 색: 검정에 alpha 낮춰 희미하게
+            txt.color = new Color(0f, 0f, 0f, 0.3f);
+
+            // (3) 배경 투명도도 낮추고 색은 유지
+            var bg = cell.GetComponent<Image>();
+            if (bg != null)
+            {
+                var c = bg.color;
+                c.a = 0.2f;         // 배경도 약간 보여주고 싶다면 0.2f 등
+                bg.color = c;
+            }
         }
 
-        // 6) 날짜 셀 생성/재활용
+        // 5) 이번 달 날짜 채우기 (기존 로직 유지)
         for (int day = 1; day <= daysInMonth; day++)
         {
             var cell = GetCell();
@@ -61,28 +83,50 @@ public class CalenderManager : MonoBehaviour
             txt.text = day.ToString();
 
             bool isToday = (year == DateTime.Now.Year &&
-                        month == DateTime.Now.Month &&
-                        day == DateTime.Now.Day);
+                            month == DateTime.Now.Month &&
+                            day == DateTime.Now.Day);
 
             // (2) 텍스트 색
             txt.color = isToday ? Color.white : Color.black;
 
-            // (3) 배경 패널(Image) 가져와서 색 바꾸기
+            // (3) 배경 패널(Image) 색
             var bg = cell.GetComponent<Image>();
             if (bg != null)
             {
                 if (isToday)
                 {
-                    // 오늘: 보라색, 불투명
                     bg.color = new Color(0.6f, 0.2f, 1f, 1f);
                 }
                 else
                 {
-                    // 기본: 투명 (α=0), 컬러는 기존 그대로 유지하거나 흰색으로 설정 가능
                     var c = bg.color;
                     c.a = 0f;
                     bg.color = c;
                 }
+            }
+        }
+
+        // 6) 뒷쪽 빈 칸 → 다음 달 날짜로 채우기 (6행 고정 등 원하는 방식으로)
+        int totalCells = startWeekday + daysInMonth;
+        int rows = Mathf.CeilToInt(totalCells / 7f);
+        int slots = rows * 7;
+        int nextMonthDays = slots - totalCells;
+
+        for (int i = 1; i <= nextMonthDays; i++)
+        {
+            var cell = GetCell();
+            cell.SetActive(true);
+
+            var txt = cell.GetComponentInChildren<TextMeshProUGUI>();
+            txt.text = i.ToString();
+            txt.color = new Color(0f, 0f, 0f, 0.3f);
+
+            var bg = cell.GetComponent<Image>();
+            if (bg != null)
+            {
+                var c = bg.color;
+                c.a = 0.2f;
+                bg.color = c;
             }
         }
     }

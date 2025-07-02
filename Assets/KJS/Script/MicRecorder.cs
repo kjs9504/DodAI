@@ -1,75 +1,89 @@
-﻿using UnityEngine;
-using System.IO;
+﻿using System.IO;
+using UnityEngine;
+using UnityEngine.Networking;
+using System.Collections;
 
+[RequireComponent(typeof(AudioSender))]
 public class MicRecorder : MonoBehaviour
 {
-    public AudioSender audioSender;
+    [Header("녹음/전송 설정")]
+    public AudioSender audioSender;    // Inspector에 할당하거나 Awake에서 자동 할당
+
     private AudioClip recordedClip;
     private string micDevice;
-    private AudioSource audioSource;
-
-    private const int maxRecordTime = 300; // 최대 5분 (긴 녹음 버퍼 확보)
+    private const int maxRecordTime = 300;
     private const int sampleRate = 16000;
+    private float startTime;
 
-    private int startPosition; // 녹음 시작 시점 샘플 위치
-    private float startTime;   // 녹음 시작 시간
+    void Awake()
+    {
+        // Inspector에 할당 안 했다면 같은 GameObject의 AudioSender 가져오기
+        if (audioSender == null)
+            audioSender = GetComponent<AudioSender>();
+    }
 
     void Start()
     {
-        audioSource = GetComponent<AudioSource>();
-        micDevice = Microphone.devices.Length > 0 ? Microphone.devices[0] : null;
-
+        micDevice = Microphone.devices.Length > 0
+                    ? Microphone.devices[0]
+                    : null;
         if (micDevice == null)
-        {
             Debug.LogError("마이크를 찾을 수 없습니다.");
-        }
     }
 
     public void StartRecording()
     {
         if (micDevice == null) return;
-
         recordedClip = Microphone.Start(micDevice, true, maxRecordTime, sampleRate);
         startTime = Time.time;
-        startPosition = Microphone.GetPosition(micDevice);
-
-        Debug.Log("녹음 시작...");
+        Debug.Log("🔴 녹음 시작...");
     }
 
-    public void StopRecordingAndSave()
+    public void StopRecordingAndSend()
     {
-        if (!Microphone.IsRecording(micDevice)) return;
+        if (recordedClip == null)
+        {
+            Debug.LogError("⚠️ 녹음된 데이터가 없습니다. StartRecording() 호출을 확인하세요.");
+            return;
+        }
+        if (!Microphone.IsRecording(micDevice))
+        {
+            Debug.LogWarning("⚠️ 현재 녹음 중이 아닙니다.");
+            return;
+        }
 
-        int endPosition = Microphone.GetPosition(micDevice);
         Microphone.End(micDevice);
-
         float duration = Time.time - startTime;
         int lengthSamples = Mathf.FloorToInt(duration * sampleRate);
+        Debug.Log($"⏹ 녹음 종료: {duration:F2}초, 샘플 수={lengthSamples}");
 
-        Debug.Log($"녹음 종료. 실제 녹음 시간: {duration:F2}초, 샘플 수: {lengthSamples}");
-
-        float[] allSamples = new float[recordedClip.samples * recordedClip.channels];
+        // 전체 샘플 가져오기
+        var allSamples = new float[recordedClip.samples * recordedClip.channels];
         recordedClip.GetData(allSamples, 0);
 
-        float[] trimmedSamples = new float[lengthSamples];
-        System.Array.Copy(allSamples, trimmedSamples, lengthSamples);
+        // 실제 길이만큼 잘라내기
+        var trimmed = new float[lengthSamples];
+        System.Array.Copy(allSamples, trimmed, lengthSamples);
 
-        AudioClip trimmedClip = AudioClip.Create("TrimmedClip", lengthSamples, 1, sampleRate, false);
-        trimmedClip.SetData(trimmedSamples, 0);
+        // 1채널짜리 AudioClip 생성
+        var clip = AudioClip.Create("TrimmedClip", lengthSamples, 1, sampleRate, false);
+        clip.SetData(trimmed, 0);
 
+        // 파일로 저장
         string filename = "recordedAudio.wav";
-        SaveWav(filename, trimmedClip);
+        string path = SaveWav(filename, clip);
 
-        // ✅ 백엔드 전송 시작
-        //StartCoroutine(audioSender.SendWavToServer(filename));
+        // 저장된 파일 전송
+        StartCoroutine(audioSender.SendWavToServer(filename));
     }
 
-    private void SaveWav(string filename, AudioClip clip)
+    private string SaveWav(string filename, AudioClip clip)
     {
-        string filePath = Path.Combine(Application.persistentDataPath, filename);
+        string path = Path.Combine(Application.persistentDataPath, filename);
         byte[] wavData = WavUtility.FromAudioClip(clip);
-
-        File.WriteAllBytes(filePath, wavData);
-        Debug.Log("저장 완료: " + filePath);
+        File.WriteAllBytes(path, wavData);
+        Debug.Log("✅ 저장 완료: " + path);
+        return path;
     }
 }
+
