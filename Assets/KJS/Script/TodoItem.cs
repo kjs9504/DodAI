@@ -42,7 +42,7 @@ public class TodoItem : MonoBehaviour,
         if (deleteButton != null)
         {
             deleteButton.onClick.AddListener(OnDeleteButton);
-            deleteButton.gameObject.SetActive(false);
+            HideDeleteButton();
         }
     }
 
@@ -132,7 +132,6 @@ public class TodoItem : MonoBehaviour,
         else
         {
             // 임계치 미달 → 원위치
-            HideDeleteButton();
             ReturnToOriginal();
         }
     }
@@ -140,7 +139,10 @@ public class TodoItem : MonoBehaviour,
     void HideDeleteButton()
     {
         if (deleteButton != null)
+        {
+            deleteButton.interactable = false;
             deleteButton.gameObject.SetActive(false);
+        }
     }
 
     void ShowDeleteButton()
@@ -162,7 +164,11 @@ public class TodoItem : MonoBehaviour,
     }
 
     void ReturnToOriginal()
-        => Move(0f, () => HideDeleteButton());
+    {
+        // 이동 애니메이션 전에 숨기고 싶을 때
+        HideDeleteButton();
+        Move(0f);
+    }
 
     void Move(float distance, Action onComplete = null)
     {
@@ -225,6 +231,10 @@ public class TodoItem : MonoBehaviour,
         cg.blocksRaycasts = false;
         var canvas = GetComponentInParent<Canvas>();
         rt.SetParent(canvas.transform, worldPositionStays: true);
+
+        // 2) **모든 아이템의 삭제 버튼을 일괄 숨기기**
+        foreach (var item in originalParent.GetComponentsInChildren<TodoItem>())
+            item.HideDeleteButton();
     }
 
     void HandleReorderDrag(PointerEventData e)
@@ -256,6 +266,10 @@ public class TodoItem : MonoBehaviour,
         rt.SetParent(originalParent);
         rt.SetSiblingIndex(placeholder.transform.GetSiblingIndex());
         Destroy(placeholder);
+        // 2) **삭제 버튼 숨기기** 추가!
+        HideDeleteButton();
+
+        // 3) Raycast 복원
         cg.blocksRaycasts = true;
     }
 
