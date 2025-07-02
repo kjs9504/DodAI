@@ -14,7 +14,10 @@ public class TodoItem : MonoBehaviour,
     public float animDuration = 0.2f;           // 애니메이션 시간
     public float revealDeleteThreshold = 50f;   // 왼쪽 스와이프 임계치
     [Header("Delete Button")]
-    public Button deleteButton;                 // 삭제 버튼
+    public Button deleteButton;
+
+    [Header("Apply Button")]
+    public Button applyButton;
 
     // Reorder 관련
     bool isReordering = false;
@@ -44,6 +47,11 @@ public class TodoItem : MonoBehaviour,
             deleteButton.onClick.AddListener(OnDeleteButton);
             HideDeleteButton();
         }
+        if (applyButton != null)
+        {
+            applyButton.onClick.AddListener(OnApplyButton);
+            HideApplyButton();
+        }
     }
 
     public void OnBeginDrag(PointerEventData e)
@@ -59,6 +67,7 @@ public class TodoItem : MonoBehaviour,
         // 2) Scroll 막기, delete 버튼 숨기기
         if (parentScroll != null) parentScroll.vertical = false;
         HideDeleteButton();
+        HideApplyButton();
 
         isReordering = false;
     }
@@ -122,11 +131,14 @@ public class TodoItem : MonoBehaviour,
         {
             // 충분히 왼쪽으로 밀었을 때
             ShowDeleteButton();
+            HideApplyButton();
             Move(-moveDistance);
         }
         else if (finalDelta >= thresholdPixels)
         {
             // 오른쪽으로 밀었을 때
+            ShowApplyButton();
+            HideDeleteButton();
             Move(+moveDistance);
         }
         else
@@ -154,6 +166,24 @@ public class TodoItem : MonoBehaviour,
         }
     }
 
+    void HideApplyButton()
+    {
+        if (applyButton != null)
+        {
+            applyButton.interactable = false;
+            applyButton.gameObject.SetActive(false);
+        }
+    }
+    void ShowApplyButton()
+    {
+        if (applyButton != null)
+        {
+            applyButton.gameObject.SetActive(true);
+            applyButton.interactable = true;
+        }
+    }
+
+
     void OnDeleteButton()
     {
         deleteButton.interactable = false;
@@ -163,11 +193,27 @@ public class TodoItem : MonoBehaviour,
         );
     }
 
+    void OnApplyButton()
+    {
+        // Apply 동작 처리 (예: 데이터 적용, UI 피드백 등)
+        HideApplyButton();
+        cg.blocksRaycasts = false;
+        Move(+moveDistance, () => {
+            // 완료 후 추가 로직이 필요하면 여기에
+        });
+    }
+
     void ReturnToOriginal()
     {
-        // 이동 애니메이션 전에 숨기고 싶을 때
+        // 1) 바로 숨기기
         HideDeleteButton();
-        Move(0f);
+        HideApplyButton();
+
+        // 2) 원위치 애니메이션 + 완료 시에도 다시 숨기기
+        Move(0f, () => {
+            HideDeleteButton();
+            HideApplyButton();
+        });
     }
 
     void Move(float distance, Action onComplete = null)
@@ -268,6 +314,7 @@ public class TodoItem : MonoBehaviour,
         Destroy(placeholder);
         // 2) **삭제 버튼 숨기기** 추가!
         HideDeleteButton();
+        HideApplyButton();
 
         // 3) Raycast 복원
         cg.blocksRaycasts = true;
