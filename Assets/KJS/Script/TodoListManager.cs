@@ -30,8 +30,8 @@ public class TodoListManager : MonoBehaviour
         // 예시: 실제로는 AI에서 받은 JSON 문자열을 넣어 호출하세요.
         string jsonFromAI = @"{
           ""tasks"": [
-            { ""todo"": ""프로젝트 회의"", ""date"": ""2025-07-1"", ""time"": ""04:00:00"" },
-            { ""todo"": ""운동 하기"", ""date"": ""2025-07-4"", ""time"": ""20:00:00"" }
+            { ""todo"": ""프로젝트 회의"", ""date"": ""2025-07-01"", ""time"": ""04:00:00"" },
+            { ""todo"": ""운동 하기"", ""date"": ""2025-07-04"", ""time"": ""20:00:00"" }
           ]
         }";
         LoadFromJson(jsonFromAI);

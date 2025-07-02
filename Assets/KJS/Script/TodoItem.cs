@@ -1,66 +1,80 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Collections;
+using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using System.Collections;
 
-/// <summary>
-/// 1) 수평 스와이프: 삭제 버튼 노출 & 삭제  
-/// 2) 수직 드래그: 아이템 순서 변경 (Offset 보정 포함)  
-/// </summary>
 [RequireComponent(typeof(CanvasGroup), typeof(RectTransform), typeof(LayoutElement))]
 public class TodoItem : MonoBehaviour,
     IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     [Header("Swipe Settings")]
-    public float thresholdPixels = 50f;
-    public float moveDistance = 150f;
-    public float animDuration = 0.2f;
+    public float thresholdPixels = 50f;         // 오른쪽 스와이프 임계치
+    public float moveDistance = 150f;           // 애니메이션 이동 거리
+    public float animDuration = 0.2f;           // 애니메이션 시간
+    public float revealDeleteThreshold = 50f;   // 왼쪽 스와이프 임계치
     [Header("Delete Button")]
-    public Button deleteButton;
+    public Button deleteButton;                 // 삭제 버튼
 
     // Reorder 관련
-    private bool isReordering = false;
-    private Transform originalParent;
-    private int originalSiblingIndex;
-    private GameObject placeholder;
-    private Vector2 dragOffset;     // 클릭 위치 ↔ 피벗 간 Offset
+    bool isReordering = false;
+    Transform originalParent;
+    int originalSiblingIndex;
+    GameObject placeholder;
+    Vector2 dragOffset;     // 클릭 위치 ↔ 피벗 간 Offset
 
-    // 공통
+    // Swipe용
     RectTransform rt;
     CanvasGroup cg;
     ScrollRect parentScroll;
-    Vector2 originalPos;         // 스와이프용
+    Vector2 originalPos;    // swipe 시작 시 anchoredPosition
+    float swipeStartLocalX; // swipe 시작 시 포인터의 로컬 X
+
+    // 이동 코루틴 핸들
+    Coroutine moveCoroutine;
 
     void Awake()
     {
         rt = GetComponent<RectTransform>();
         cg = GetComponent<CanvasGroup>();
         parentScroll = GetComponentInParent<ScrollRect>();
+
         if (deleteButton != null)
+        {
             deleteButton.onClick.AddListener(OnDeleteButton);
+            deleteButton.gameObject.SetActive(false);
+        }
     }
 
     public void OnBeginDrag(PointerEventData e)
     {
+        // 1) Swipe 시작 정보 기록
         originalPos = rt.anchoredPosition;
+        RectTransform canvasRect = rt.parent as RectTransform;
+        Vector2 localPoint;
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            canvasRect, e.position, e.pressEventCamera, out localPoint);
+        swipeStartLocalX = localPoint.x;
+
+        // 2) Scroll 막기, delete 버튼 숨기기
         if (parentScroll != null) parentScroll.vertical = false;
+        HideDeleteButton();
+
         isReordering = false;
     }
 
     public void OnDrag(PointerEventData e)
     {
-        // 첫 이동에서 수직 이동이 더 크면 리오더 시작
+        // 수직 이동이 더 크면 Reorder 모드로
         if (!isReordering && Mathf.Abs(e.delta.y) > Mathf.Abs(e.delta.x))
         {
             StartReorder();
-
-            // 이 시점에서 클릭 지점과 피벗 위치 간 Offset 계산
+            // 클릭 ↔ 피벗 Offset
             RectTransform canvasRect = rt.parent as RectTransform;
-            Vector2 localPointer;
+            Vector2 localPoint;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                canvasRect, e.position, e.pressEventCamera, out localPointer);
-            dragOffset = rt.anchoredPosition - localPointer;
-
+                canvasRect, e.position, e.pressEventCamera, out localPoint);
+            dragOffset = rt.anchoredPosition - localPoint;
             isReordering = true;
         }
 
@@ -80,36 +94,85 @@ public class TodoItem : MonoBehaviour,
             HandleSwipeEnd(e);
     }
 
-    #region —— Swipe (가로 스와이프) ——
+    #region —— Swipe —— 
 
     void HandleSwipeDrag(PointerEventData e)
     {
-        rt.anchoredPosition += new Vector2(e.delta.x, 0f);
+        // Canvas 로컬 좌표로 현재 포인터 위치 구하기
+        RectTransform canvasRect = rt.parent as RectTransform;
+        Vector2 localPoint;
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            canvasRect, e.position, e.pressEventCamera, out localPoint);
+
+        // swipeStartLocalX 대비 얼마나 움직였는지 계산
+        float deltaX = localPoint.x - swipeStartLocalX;
+        Vector2 targetPos = originalPos + new Vector2(deltaX, 0f);
+
+        // (선택) 감속 효과: Lerp 사용 시 Uncomment
+        // rt.anchoredPosition = Vector2.Lerp(rt.anchoredPosition, targetPos, Time.deltaTime * 10f);
+        // 바로 따라오려면 아래 사용:
+        rt.anchoredPosition = targetPos;
     }
 
     void HandleSwipeEnd(PointerEventData e)
     {
-        float deltaX = rt.anchoredPosition.x - originalPos.x;
-        if (Mathf.Abs(deltaX) >= thresholdPixels)
-            MoveOnly(Mathf.Sign(deltaX) * moveDistance);
+        float finalDelta = rt.anchoredPosition.x - originalPos.x;
+
+        if (finalDelta <= -revealDeleteThreshold)
+        {
+            // 충분히 왼쪽으로 밀었을 때
+            ShowDeleteButton();
+            Move(-moveDistance);
+        }
+        else if (finalDelta >= thresholdPixels)
+        {
+            // 오른쪽으로 밀었을 때
+            Move(+moveDistance);
+        }
         else
+        {
+            // 임계치 미달 → 원위치
+            HideDeleteButton();
             ReturnToOriginal();
+        }
     }
 
-    public void MoveOnly(float distance)
+    void HideDeleteButton()
     {
-        StopAllCoroutines();
+        if (deleteButton != null)
+            deleteButton.gameObject.SetActive(false);
+    }
+
+    void ShowDeleteButton()
+    {
+        if (deleteButton != null)
+        {
+            deleteButton.gameObject.SetActive(true);
+            deleteButton.interactable = true;
+        }
+    }
+
+    void OnDeleteButton()
+    {
+        deleteButton.interactable = false;
+        cg.blocksRaycasts = false;
+        Move(+moveDistance, () =>
+            StartCoroutine(AnimateDelete(rt.anchoredPosition, rt.anchoredPosition + Vector2.right * moveDistance))
+        );
+    }
+
+    void ReturnToOriginal()
+        => Move(0f, () => HideDeleteButton());
+
+    void Move(float distance, Action onComplete = null)
+    {
+        if (moveCoroutine != null)
+            StopCoroutine(moveCoroutine);
         Vector2 target = originalPos + new Vector2(distance, 0f);
-        StartCoroutine(AnimateMove(rt.anchoredPosition, target));
+        moveCoroutine = StartCoroutine(AnimateMove(rt.anchoredPosition, target, onComplete));
     }
 
-    public void ReturnToOriginal()
-    {
-        StopAllCoroutines();
-        StartCoroutine(AnimateMove(rt.anchoredPosition, originalPos));
-    }
-
-    IEnumerator AnimateMove(Vector2 from, Vector2 to)
+    IEnumerator AnimateMove(Vector2 from, Vector2 to, Action onComplete = null)
     {
         float elapsed = 0f;
         while (elapsed < animDuration)
@@ -121,14 +184,7 @@ public class TodoItem : MonoBehaviour,
             yield return null;
         }
         rt.anchoredPosition = to;
-    }
-
-    void OnDeleteButton()
-    {
-        deleteButton.interactable = false;
-        cg.blocksRaycasts = false;
-        StartCoroutine(AnimateDelete(rt.anchoredPosition,
-            rt.anchoredPosition + Vector2.right * moveDistance));
+        onComplete?.Invoke();
     }
 
     IEnumerator AnimateDelete(Vector2 from, Vector2 to)
@@ -139,26 +195,22 @@ public class TodoItem : MonoBehaviour,
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / animDuration);
             float ease = 1f - (1f - t) * (1f - t);
-
             rt.anchoredPosition = Vector2.Lerp(from, to, ease);
             cg.alpha = Mathf.Lerp(1f, 0f, ease);
             yield return null;
         }
-        rt.anchoredPosition = to;
-        cg.alpha = 0f;
         Destroy(gameObject);
     }
 
     #endregion
 
-    #region —— Reorder (수직 드래그) ——
+    #region —— Reorder —— 
 
     void StartReorder()
     {
         originalParent = rt.parent;
         originalSiblingIndex = rt.GetSiblingIndex();
 
-        // 플레이스홀더 생성
         placeholder = new GameObject("Placeholder");
         var le = placeholder.AddComponent<LayoutElement>();
         var selfLE = GetComponent<LayoutElement>();
@@ -171,27 +223,23 @@ public class TodoItem : MonoBehaviour,
         placeholder.transform.SetSiblingIndex(originalSiblingIndex);
 
         cg.blocksRaycasts = false;
-        // worldPositionStays: true로 해야 리패런팅 시 월드 위치 유지
-        Canvas canvas = GetComponentInParent<Canvas>();
+        var canvas = GetComponentInParent<Canvas>();
         rt.SetParent(canvas.transform, worldPositionStays: true);
     }
 
     void HandleReorderDrag(PointerEventData e)
     {
-        // 스크린→캔버스 로컬 좌표 변환 후 Offset 적용
         RectTransform canvasRect = rt.parent as RectTransform;
         Vector2 localPoint;
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
             canvasRect, e.position, e.pressEventCamera, out localPoint);
         rt.anchoredPosition = localPoint + dragOffset;
 
-        // 플레이스홀더 위치 업데이트
         int newIndex = originalParent.childCount;
         for (int i = 0; i < originalParent.childCount; i++)
         {
             var child = originalParent.GetChild(i);
             if (child == placeholder) continue;
-
             if (rt.position.y > child.position.y)
             {
                 newIndex = i;
@@ -207,7 +255,6 @@ public class TodoItem : MonoBehaviour,
     {
         rt.SetParent(originalParent);
         rt.SetSiblingIndex(placeholder.transform.GetSiblingIndex());
-
         Destroy(placeholder);
         cg.blocksRaycasts = true;
     }

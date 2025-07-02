@@ -134,15 +134,28 @@ public class CalenderManager : MonoBehaviour
     // 풀에서 꺼내거나 새로 인스턴스화
     private GameObject GetCell()
     {
+        GameObject cell;
         if (cellPool.Count > 0)
         {
-            var obj = cellPool.Dequeue();
-            obj.transform.SetParent(gridParent, false);
-            return obj;
+            cell = cellPool.Dequeue();
+            cell.transform.SetParent(gridParent, false);
         }
         else
         {
-            return Instantiate(dayCellPrefab, gridParent);
+            cell = Instantiate(dayCellPrefab, gridParent);
         }
+
+        //── RectTransform 정보 가져오기 ──
+        var rt = cell.GetComponent<RectTransform>();
+        //── BoxCollider 동기화 ──
+        var bc = cell.GetComponent<BoxCollider>();
+        if (bc == null) bc = cell.AddComponent<BoxCollider>();
+        // Z 두께는 아주 얇게, UI는 Z=0 평면이므로 0.01f 정도면 충분
+        bc.size = new Vector3(rt.rect.width, rt.rect.height, 0.01f);
+        // Collider 중심을 RectTransform 중심(0,0)으로
+        bc.center = Vector3.zero;
+
+        return cell;
     }
+
 }
