@@ -7,10 +7,11 @@ using System.Globalization;
 
 public class CalenderManager : MonoBehaviour
 {
-    [Header("¿ùµå-½ºÆäÀÌ½º UI ÂüÁ¶")]
-    public Transform gridParent;         // GridLayoutGroupÀÌ ºÙÀº ºÎ¸ğ
-    public GameObject dayCellPrefab;     // TextMeshProUGUI Æ÷ÇÔµÈ Ä¶¸°´õ ¼¿ ÇÁ¸®ÆÕ
-    public TextMeshProUGUI monthLabel;   // ¡°2025³â 07¿ù¡± µî Ç¥½ÃÇÒ ÅØ½ºÆ®
+    [Header("ï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½ï¿½Ì½ï¿½ UI ï¿½ï¿½ï¿½ï¿½")]
+    public Transform gridParent;         // GridLayoutGroupï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Î¸ï¿½
+    public GameObject dayCellPrefab;     // TextMeshProUGUI ï¿½ï¿½ï¿½Ôµï¿½ Ä¶ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    public TextMeshProUGUI monthLabel;   // ï¿½ï¿½2025ï¿½ï¿½ 07ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ Ç¥ï¿½ï¿½ï¿½ï¿½ ï¿½Ø½ï¿½Æ®
+    public TodoListManager todoListManager; // ì¸ìŠ¤í™í„°ì—ì„œ ì—°ê²°
 
     private int year, month;
     private Queue<GameObject> cellPool = new Queue<GameObject>();
@@ -27,34 +28,34 @@ public class CalenderManager : MonoBehaviour
 
     public void DrawCalendar()
     {
-        // 1) ±âÁ¸ ¼¿ ÃÊ±âÈ­
+        // 1) ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½Ê±ï¿½È­
         foreach (Transform child in gridParent)
         {
             child.gameObject.SetActive(false);
             cellPool.Enqueue(child.gameObject);
         }
 
-        // 2) ·¹ÀÌºí °»½Å
+        // 2) ï¿½ï¿½ï¿½Ìºï¿½ ï¿½ï¿½ï¿½ï¿½
         monthLabel.text = new DateTime(year, month, 1)
                               .ToString("MMMM yyyy", CultureInfo.InvariantCulture);
 
-        // 3) Ã¹Â° ¿äÀÏ¡¤ÀÏ¼ö, ÀÌÀü¡¤´ÙÀ½ ´Ş Á¤º¸
+        // 3) Ã¹Â° ï¿½ï¿½ï¿½Ï¡ï¿½ï¿½Ï¼ï¿½, ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
         DateTime firstDay = new DateTime(year, month, 1);
-        int startWeekday = (int)firstDay.DayOfWeek;        // ÀÏ=0, ¿ù=1...
+        int startWeekday = (int)firstDay.DayOfWeek;        // ï¿½ï¿½=0, ï¿½ï¿½=1...
         int daysInMonth = DateTime.DaysInMonth(year, month);
 
         int prevMonth = month - 1, prevYear = year;
         if (prevMonth < 1) { prevMonth = 12; prevYear--; }
         int daysInPrevMonth = DateTime.DaysInMonth(prevYear, prevMonth);
 
-        // 4) Áö³­ ´Ş ³¯Â¥ Ã¤¿ì±â
+        // 4) ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½Â¥ Ã¤ï¿½ï¿½ï¿½
         for (int i = 0; i < startWeekday; i++)
         {
             int dayNumber = daysInPrevMonth - startWeekday + i + 1;
             StyleCell(dayNumber, DayType.PreviousMonth);
         }
 
-        // 5) ÀÌ¹ø ´Ş ³¯Â¥ Ã¤¿ì±â
+        // 5) ï¿½Ì¹ï¿½ ï¿½ï¿½ ï¿½ï¿½Â¥ Ã¤ï¿½ï¿½ï¿½
         DateTime today = DateTime.Now.Date;
         for (int d = 1; d <= daysInMonth; d++)
         {
@@ -65,7 +66,7 @@ public class CalenderManager : MonoBehaviour
                 StyleCell(d, DayType.CurrentMonth);
         }
 
-        // 6) ´ÙÀ½ ´Ş ³¯Â¥ Ã¤¿ì±â
+        // 6) ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½Â¥ Ã¤ï¿½ï¿½ï¿½
         int total = startWeekday + daysInMonth;
         int rows = Mathf.CeilToInt(total / 7f);
         int slots = rows * 7;
@@ -84,11 +85,11 @@ public class CalenderManager : MonoBehaviour
         cell.transform.SetParent(gridParent, false);
         cell.SetActive(true);
 
-        // Text ¼¼ÆÃ
+        // Text ï¿½ï¿½ï¿½ï¿½
         var txt = cell.GetComponentInChildren<TextMeshProUGUI>();
         txt.text = dayNumber.ToString();
 
-        // Background(Image) ¼¼ÆÃ
+        // Background(Image) ï¿½ï¿½ï¿½ï¿½
         var bg = cell.GetComponent<Image>();
         switch (type)
         {
@@ -103,12 +104,12 @@ public class CalenderManager : MonoBehaviour
                 break;
 
             case DayType.CurrentMonth:
-                // ÅØ½ºÆ®´Â ÁøÇÑ °ËÁ¤
+                // ï¿½Ø½ï¿½Æ®ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
                 txt.color = new Color32(30, 30, 30, 255);
 
                 if (bg != null)
                 {
-                    // Èò»ö ¹è°æ, ¿ÏÀü ºÒÅõ¸í
+                    // ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½, ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
                     bg.color = new Color32(255, 255, 255, 255);
                 }
                 break;
@@ -117,6 +118,21 @@ public class CalenderManager : MonoBehaviour
                 txt.color = Color.white;
                 if (bg != null) bg.color = new Color(0.6f, 0.2f, 1f, 1f);
                 break;
+        }
+
+        // ë‚ ì§œ ì…€ í´ë¦­ ì´ë²¤íŠ¸ ì—°ê²° (í˜„ì¬ ë‹¬ë§Œ)
+        var btn = cell.GetComponent<Button>();
+        if (btn != null && type == DayType.CurrentMonth)
+        {
+            string dateStr = $"{year}-{month:D2}-{dayNumber:D2}";
+            btn.onClick.RemoveAllListeners();
+            btn.onClick.AddListener(() => {
+                if (todoListManager != null)
+                {
+                    todoListManager.ShowList();
+                    todoListManager.ShowTasksForDate(dateStr);
+                }
+            });
         }
     }
 }

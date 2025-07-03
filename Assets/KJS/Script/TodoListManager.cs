@@ -25,13 +25,16 @@ public class TodoListManager : MonoBehaviour
     [Header("할 일 아이템 Prefab")]
     public GameObject itemPrefab;    // TodoItemPrefab 에 드래그
 
+    public List<TodoItemData> allTasks = new List<TodoItemData>();
+
     void Start()
     {
         // 예시: 실제로는 AI에서 받은 JSON 문자열을 넣어 호출하세요.
         string jsonFromAI = @"{
           ""tasks"": [
             { ""todo"": ""프로젝트 회의"", ""date"": ""2025-07-01"", ""time"": ""04:00:00"" },
-            { ""todo"": ""운동 하기"", ""date"": ""2025-07-04"", ""time"": ""20:00:00"" }
+            { ""todo"": ""운동 하기"", ""date"": ""2025-07-04"", ""time"": ""20:00:00"" },
+            { ""todo"": ""목욕 하기"", ""date"": ""2025-07-04"", ""time"": ""17:00:00"" }
           ]
         }";
         LoadFromJson(jsonFromAI);
@@ -47,23 +50,9 @@ public class TodoListManager : MonoBehaviour
 
         // JSON → TodoListData
         var listData = JsonUtility.FromJson<TodoListData>(json);
+        allTasks = listData.tasks; // 전체 할 일 저장
         // 기존 자식 지우기 (필요하다면)
         foreach (Transform child in content) Destroy(child.gameObject);
-
-        // 각각의 TaskData를 포맷팅 후 CreateItem 호출
-        foreach (var t in listData.tasks)
-        {
-            // "yyyy-MM-dd HH:mm:ss" 형식으로 파싱
-            DateTime dt = DateTime.ParseExact(
-                $"{t.date} {t.time}",
-                "yyyy-MM-dd HH:mm:ss",
-                CultureInfo.InvariantCulture
-            );
-
-            // 포맷: "6월 27일 17시에 저녁 약속"
-            string formatted = $"{dt.Month}월 {dt.Day}일 {dt.Hour}시에 {t.todo}";
-            CreateItem(formatted);
-        }
     }
 
     /// <summary>
@@ -77,6 +66,42 @@ public class TodoListManager : MonoBehaviour
         var tmp = go.GetComponentInChildren<TextMeshProUGUI>();
         if (tmp != null)
             tmp.text = text;
+    }
+
+    /// <summary>
+    /// 특정 날짜의 할 일만 표시
+    /// </summary>
+    public void ShowTasksForDate(string date)
+    {
+        // 기존 UI 아이템 삭제
+        foreach (Transform child in content) Destroy(child.gameObject);
+
+        // 해당 날짜의 할 일만 생성
+        foreach (var t in allTasks)
+        {
+            if (t.date == date)
+            {
+                DateTime dt = DateTime.ParseExact($"{t.date} {t.time}", "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+                string formatted = $"{dt.Month}월 {dt.Day}일 {dt.Hour}시에 {t.todo}";
+                CreateItem(formatted);
+            }
+        }
+    }
+
+    /// <summary>
+    /// TodoList 전체 UI를 보이게
+    /// </summary>
+    public void ShowList()
+    {
+        gameObject.SetActive(true);
+    }
+
+    /// <summary>
+    /// TodoList 전체 UI를 숨김
+    /// </summary>
+    public void HideList()
+    {
+        gameObject.SetActive(false);
     }
 }
 
