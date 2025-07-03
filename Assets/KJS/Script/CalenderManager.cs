@@ -127,11 +127,10 @@ public class CalenderManager : MonoBehaviour
             string dateStr = $"{year}-{month:D2}-{dayNumber:D2}";
             btn.onClick.RemoveAllListeners();
             btn.onClick.AddListener(() => {
-                if (todoListManager != null)
-                {
-                    todoListManager.ShowList();
-                    todoListManager.ShowTasksForDate(dateStr);
-                }
+                // 반드시 MonoBehaviour.StartCoroutine 통해 네트워크 요청을 시작
+                todoListManager?.StartCoroutine(
+                    todoListManager.FetchAndShowTasksForDate(dateStr)
+                );
             });
         }
     }

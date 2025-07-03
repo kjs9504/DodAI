@@ -52,7 +52,7 @@ public class AudioSender : MonoBehaviour
             }
         }
     }
-    private IEnumerator SaveTasksToBackend(string tasksJson)
+    public IEnumerator SaveTasksToBackend(string tasksJson)
     {
         var request = new UnityWebRequest(backendUrl, "POST");
         byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(tasksJson);

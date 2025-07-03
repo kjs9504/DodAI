@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using UnityEngine;
 using TMPro;
+using UnityEngine.Networking;
+using System.Collections;
 
 [Serializable]
 public class TodoItemData
@@ -102,6 +104,27 @@ public class TodoListManager : MonoBehaviour
     public void HideList()
     {
         gameObject.SetActive(false);
+    }
+
+    public IEnumerator FetchAndShowTasksForDate(string dateStr)
+    {
+        string url = "http://localhost:8080/api/tasks/show"; // 백엔드 주소에 맞게 수정
+        using (UnityWebRequest www = UnityWebRequest.Get(url))
+        {
+            yield return www.SendWebRequest();
+
+            if (www.result == UnityWebRequest.Result.Success)
+            {
+                string json = www.downloadHandler.text;
+                LoadFromJson(json); // 전체 할 일 목록 갱신
+                ShowList();
+                ShowTasksForDate(dateStr); // 해당 날짜만 표시
+            }
+            else
+            {
+                Debug.LogError("할 일 목록 불러오기 실패: " + www.error);
+            }
+        }
     }
 }
 
