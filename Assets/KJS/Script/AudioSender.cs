@@ -11,6 +11,10 @@ public class AudioSender : MonoBehaviour
     [Header("할 일 리스트 매니저 (Inspector에서 할당)")]
     public TodoListManager todoListManager;
 
+    [Header("할 일 저장용 백엔드 URL")]
+    public string backendUrl = "http://localhost:8080/api/tasks/bulk";
+
+
     public IEnumerator SendWavToServer(string filename)
     {
         string path = Path.Combine(Application.persistentDataPath, filename);
@@ -47,6 +51,21 @@ public class AudioSender : MonoBehaviour
                 Debug.LogError("❌ 전송 실패: " + www.error);
             }
         }
+    }
+    private IEnumerator SaveTasksToBackend(string tasksJson)
+    {
+        var request = new UnityWebRequest(backendUrl, "POST");
+        byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(tasksJson);
+        request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+        request.downloadHandler = new DownloadHandlerBuffer();
+        request.SetRequestHeader("Content-Type", "application/json");
+
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+            Debug.Log("✅ 백엔드 저장 성공");
+        else
+            Debug.LogError($"❌ 백엔드 저장 실패 ({request.responseCode}): {request.error}");
     }
 }
 

@@ -35,7 +35,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 30, y: 27.5}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8380951876700582532
 CanvasRenderer:
@@ -109,7 +109,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 30, y: 27.5}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &3122068944623016936
 GameObject:
@@ -146,7 +146,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 200, y: 50}
+  m_SizeDelta: {x: 30, y: 27.5}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4417769480113134197
 CanvasRenderer:
@@ -259,7 +259,6 @@ GameObject:
   - component: {fileID: 5216183859265382252}
   - component: {fileID: 2046922829914980984}
   - component: {fileID: 6288403044764157767}
-  - component: {fileID: 1113581039786696033}
   m_Layer: 5
   m_Name: Date
   m_TagString: Untagged
@@ -286,7 +285,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1177, y: 653.5}
+  m_SizeDelta: {x: 30, y: 27.5}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5216183859265382252
 CanvasRenderer:
@@ -370,24 +369,3 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!65 &1113581039786696033
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3240659698186081046}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}

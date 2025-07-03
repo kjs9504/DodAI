@@ -1,24 +1,38 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class DebugPointer : MonoBehaviour,
-    IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
+public class CellDebugLogger : MonoBehaviour, IPointerClickHandler
 {
-    public void OnPointerClick(PointerEventData e)
+    void Start()
     {
-        Debug.Log(">> OnPointerClick");
+        var bc = GetComponent<BoxCollider>();
+        if (bc != null)
+        {
+            // 로컬 센터
+            Debug.Log($"{name} ▶ bc.center local = {bc.center}, size = {bc.size}");
+            // 월드 센터
+            Vector3 worldCtr = transform.TransformPoint(bc.center);
+            Debug.Log($"{name} ▶ bc.center world = {worldCtr}");
+        }
     }
-    public void OnBeginDrag(PointerEventData e)
+
+    public void OnPointerClick(PointerEventData eventData)
     {
-        Debug.Log(">> OnBeginDrag");
+        Vector3 wp = eventData.pointerCurrentRaycast.worldPosition;
+        Debug.Log($"{name} 클릭! screenPos={eventData.position} worldPos={wp}");
     }
-    public void OnDrag(PointerEventData e)
+
+    void OnDrawGizmos()
     {
-        Debug.Log(">> OnDrag: " + e.delta);
-    }
-    public void OnEndDrag(PointerEventData e)
-    {
-        Debug.Log(">> OnEndDrag");
+        var bc = GetComponent<BoxCollider>();
+        if (bc != null)
+        {
+            Gizmos.color = Color.red;
+            Vector3 worldCtr = transform.TransformPoint(bc.center);
+            Gizmos.DrawWireCube(worldCtr, bc.size);
+        }
     }
 }
+
+
 
