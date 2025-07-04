@@ -210,14 +210,16 @@ public class TodoItem : MonoBehaviour,
     {
         HideApplyButton();
         cg.blocksRaycasts = false;
-        StartCoroutine(ApplyThenAnimate());
+        // data 전체를 JSON으로 만들어 전송
+        TodoListData applyList = new TodoListData();
+        applyList.tasks = new List<TodoItemData> { data };
+        string json = JsonUtility.ToJson(applyList);
+        Debug.Log("적용용 JSON: " + json);
+        StartCoroutine(ApplyThenAnimate(json));
     }
 
-    IEnumerator ApplyThenAnimate()
+    IEnumerator ApplyThenAnimate(string json)
     {
-        var wrapper = new { tasks = new[] { new { todo = this.todo, date = this.date, time = this.time } } };
-        string json = JsonUtility.ToJson(wrapper);
-
         // userId 없이 bulk/accept 호출
         using var req = new UnityWebRequest($"{backendUrl}/bulk/accept", "POST");
         byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
