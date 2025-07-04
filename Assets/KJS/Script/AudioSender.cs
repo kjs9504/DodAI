@@ -12,7 +12,7 @@ public class AudioSender : MonoBehaviour
     public TodoListManager todoListManager;
 
     [Header("할 일 저장용 백엔드 URL")]
-    public string backendUrl = "http://localhost:8080/api/tasks/bulk";
+    public string backendUrl = "http://localhost:5432/api/tasks/bulk";
 
 
     public IEnumerator SendWavToServer(string filename)

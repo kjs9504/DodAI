@@ -2,42 +2,55 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Networking;
 using UnityEngine.UI;
+using System.Collections.Generic; // Added for List
 
 [RequireComponent(typeof(CanvasGroup), typeof(RectTransform), typeof(LayoutElement))]
 public class TodoItem : MonoBehaviour,
     IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     [Header("Swipe Settings")]
-    public float thresholdPixels = 50f;         // 오른쪽 스와이프 임계치
-    public float moveDistance = 150f;           // 애니메이션 이동 거리
-    public float animDuration = 0.2f;           // 애니메이션 시간
-    public float revealDeleteThreshold = 50f;   // 왼쪽 스와이프 임계치
+    public float thresholdPixels = 50f;
+    public float moveDistance = 150f;
+    public float animDuration = 0.2f;
+    public float revealDeleteThreshold = 50f;
+
     [Header("Delete Button")]
     public Button deleteButton;
 
     [Header("Apply Button")]
     public Button applyButton;
 
+    [Header("Backend Settings")]
+    public string backendUrl = "http://localhost:8080/api/tasks";
+
+    // 이 아이템이 표현하는 Task 정보 (캘린더 생성 시 할당)
+    [HideInInspector] public long id;
+    [HideInInspector] public string todo;
+    [HideInInspector] public string date;
+    [HideInInspector] public string time;
+    [HideInInspector] public TodoItemData data;
+
     // Reorder 관련
     bool isReordering = false;
     Transform originalParent;
     int originalSiblingIndex;
     GameObject placeholder;
-    Vector2 dragOffset;     // 클릭 위치 ↔ 피벗 간 Offset
+    Vector2 dragOffset;
 
     // Swipe용
     RectTransform rt;
     CanvasGroup cg;
     ScrollRect parentScroll;
-    Vector2 originalPos;    // swipe 시작 시 anchoredPosition
-    float swipeStartLocalX; // swipe 시작 시 포인터의 로컬 X
+    Vector2 originalPos;
+    float swipeStartLocalX;
 
     // 이동 코루틴 핸들
     Coroutine moveCoroutine;
 
-    private enum SwipeState { Normal, DeleteShown, ApplyShown, Moving }
-    private SwipeState swipeState = SwipeState.Normal;
+    enum SwipeState { Normal, DeleteShown, ApplyShown, Moving }
+    SwipeState swipeState = SwipeState.Normal;
 
     void Awake()
     {
@@ -60,203 +73,198 @@ public class TodoItem : MonoBehaviour,
     public void OnBeginDrag(PointerEventData e)
     {
         if (swipeState == SwipeState.Moving) return;
-
-        // Normal 상태에서 스와이프를 시작할 때만 originalPos를 기록합니다.
         if (swipeState == SwipeState.Normal)
-        {
             originalPos = rt.anchoredPosition;
-        }
 
-        RectTransform canvasRect = rt.parent as RectTransform;
-        Vector2 localPoint;
+        var canvasRect = rt.parent as RectTransform;
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            canvasRect, e.position, e.pressEventCamera, out localPoint);
+            canvasRect, e.position, e.pressEventCamera, out Vector2 localPoint);
         swipeStartLocalX = localPoint.x;
 
-        // 2) Scroll 막기, delete 버튼 숨기기
         if (parentScroll != null) parentScroll.vertical = false;
-        
         isReordering = false;
     }
 
     public void OnDrag(PointerEventData e)
     {
-        // 수직 이동이 더 크면 Reorder 모드로
         if (!isReordering && Mathf.Abs(e.delta.y) > Mathf.Abs(e.delta.x))
         {
             StartReorder();
-            // 클릭 ↔ 피벗 Offset
-            RectTransform canvasRect = rt.parent as RectTransform;
-            Vector2 localPoint;
+            var canvasRect = rt.parent as RectTransform;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                canvasRect, e.position, e.pressEventCamera, out localPoint);
+                canvasRect, e.position, e.pressEventCamera, out Vector2 localPoint);
             dragOffset = rt.anchoredPosition - localPoint;
             isReordering = true;
         }
 
-        if (isReordering)
-            HandleReorderDrag(e);
-        else
-            HandleSwipeDrag(e);
+        if (isReordering) HandleReorderDrag(e);
+        else HandleSwipeDrag(e);
     }
 
     public void OnEndDrag(PointerEventData e)
     {
         if (parentScroll != null) parentScroll.vertical = true;
-
-        if (isReordering)
-            EndReorder();
-        else
-            HandleSwipeEnd(e);
+        if (isReordering) EndReorder();
+        else HandleSwipeEnd(e);
     }
 
-    #region —— Swipe —— 
+    #region Swipe Logic
 
     void HandleSwipeDrag(PointerEventData e)
     {
-        // Canvas 로컬 좌표로 현재 포인터 위치 구하기
-        RectTransform canvasRect = rt.parent as RectTransform;
-        Vector2 localPoint;
+        var canvasRect = rt.parent as RectTransform;
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            canvasRect, e.position, e.pressEventCamera, out localPoint);
+            canvasRect, e.position, e.pressEventCamera, out Vector2 localPoint);
 
-        // swipeStartLocalX 대비 얼마나 움직였는지 계산
         float deltaX = localPoint.x - swipeStartLocalX;
-        Vector2 targetPos = originalPos + new Vector2(deltaX, 0f);
-
-        // (선택) 감속 효과: Lerp 사용 시 Uncomment
-        // rt.anchoredPosition = Vector2.Lerp(rt.anchoredPosition, targetPos, Time.deltaTime * 10f);
-        // 바로 따라오려면 아래 사용:
-        rt.anchoredPosition = targetPos;
+        rt.anchoredPosition = originalPos + new Vector2(deltaX, 0f);
     }
 
     void HandleSwipeEnd(PointerEventData e)
     {
-        if (swipeState == SwipeState.Moving) return; // 애니메이션 중엔 무시
-
+        if (swipeState == SwipeState.Moving) return;
         float finalDelta = rt.anchoredPosition.x - originalPos.x;
 
         if (swipeState == SwipeState.DeleteShown && finalDelta >= thresholdPixels)
         {
-            ReturnToOriginal();
-            return;
+            ReturnToOriginal(); return;
         }
         if (swipeState == SwipeState.ApplyShown && finalDelta <= -revealDeleteThreshold)
         {
-            ReturnToOriginal();
-            return;
+            ReturnToOriginal(); return;
         }
 
         if (finalDelta <= -revealDeleteThreshold)
         {
-            ShowDeleteButton();
-            HideApplyButton();
-            Move(-moveDistance, () => { swipeState = SwipeState.DeleteShown; });
+            ShowDeleteButton(); HideApplyButton();
+            Move(-moveDistance, () => swipeState = SwipeState.DeleteShown);
             swipeState = SwipeState.Moving;
         }
         else if (finalDelta >= thresholdPixels)
         {
-            ShowApplyButton();
-            HideDeleteButton();
-            Move(+moveDistance, () => { swipeState = SwipeState.ApplyShown; });
+            ShowApplyButton(); HideDeleteButton();
+            Move(+moveDistance, () => swipeState = SwipeState.ApplyShown);
             swipeState = SwipeState.Moving;
         }
         else
         {
-            HideDeleteButton();
-            HideApplyButton();
-            Move(0f, () => { swipeState = SwipeState.Normal; });
+            HideDeleteButton(); HideApplyButton();
+            Move(0f, () => swipeState = SwipeState.Normal);
             swipeState = SwipeState.Moving;
         }
     }
 
-    void ShowDeleteButton()
-    {
-        if (deleteButton != null)
-        {
-            deleteButton.gameObject.SetActive(true);
-            deleteButton.interactable = true;
-            swipeState = SwipeState.DeleteShown;
-        }
-    }
+    void ShowDeleteButton() { deleteButton?.gameObject.SetActive(true); deleteButton.interactable = true; swipeState = SwipeState.DeleteShown; }
+    void HideDeleteButton() { deleteButton?.gameObject.SetActive(false); deleteButton.interactable = false; if (swipeState == SwipeState.DeleteShown) swipeState = SwipeState.Normal; }
+    void ShowApplyButton() { applyButton?.gameObject.SetActive(true); applyButton.interactable = true; swipeState = SwipeState.ApplyShown; }
+    void HideApplyButton() { applyButton?.gameObject.SetActive(false); applyButton.interactable = false; if (swipeState == SwipeState.ApplyShown) swipeState = SwipeState.Normal; }
 
-    void HideDeleteButton()
-    {
-        if (deleteButton != null)
-        {
-            deleteButton.interactable = false;
-            deleteButton.gameObject.SetActive(false);
-            if (swipeState == SwipeState.DeleteShown) swipeState = SwipeState.Normal;
-        }
-    }
+    #endregion
 
-    void ShowApplyButton()
-    {
-        if (applyButton != null)
-        {
-            applyButton.gameObject.SetActive(true);
-            applyButton.interactable = true;
-            swipeState = SwipeState.ApplyShown;
-        }
-    }
+    #region Delete + Backend
 
-    void HideApplyButton()
+    public void OnDeleteButton()
     {
-        if (applyButton != null)
-        {
-            applyButton.interactable = false;
-            applyButton.gameObject.SetActive(false);
-            if (swipeState == SwipeState.ApplyShown) swipeState = SwipeState.Normal;
-        }
-    }
-
-    void OnDeleteButton()
-    {
+        Debug.Log($"삭제 버튼 클릭: id={data.id}, todo={data.todo}");
+        // 삭제용 JSON을 data 전체로 생성
+        TodoListData deleteList = new TodoListData();
+        deleteList.tasks = new List<TodoItemData> { data };
+        string json = JsonUtility.ToJson(deleteList);
+        Debug.Log("삭제용 JSON: " + json);
         deleteButton.interactable = false;
         cg.blocksRaycasts = false;
-        Move(+moveDistance, () =>
-            StartCoroutine(AnimateDelete(rt.anchoredPosition, rt.anchoredPosition + Vector2.right * moveDistance))
-        );
+        StartCoroutine(DeleteThenAnimate(json));
     }
+
+    IEnumerator DeleteThenAnimate(string json)
+    {
+        // 1) id 포함 전체 JSON 사용
+        using var req = new UnityWebRequest($"{backendUrl}/bulk", "DELETE");
+        byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
+        req.uploadHandler = new UploadHandlerRaw(body) { contentType = "application/json" };
+        req.downloadHandler = new DownloadHandlerBuffer();
+        yield return req.SendWebRequest();
+
+        // 3) 성공 시 애니메이션, 실패 시 복구
+        if (req.result == UnityWebRequest.Result.Success)
+        {
+            Move(+moveDistance, () => {
+                StartCoroutine(AnimateDelete(
+                    rt.anchoredPosition,
+                    rt.anchoredPosition + Vector2.right * moveDistance
+                ));
+            });
+        }
+        else
+        {
+            ReturnToOriginal();
+            cg.blocksRaycasts = true;
+        }
+    }
+
+    #endregion
+
+    #region Apply + Backend
 
     void OnApplyButton()
     {
-        // Apply 동작 처리 (예: 데이터 적용, UI 피드백 등)
         HideApplyButton();
         cg.blocksRaycasts = false;
-        Move(+moveDistance, () => {
-            // 완료 후 추가 로직이 필요하면 여기에
-        });
+        StartCoroutine(ApplyThenAnimate());
     }
+
+    IEnumerator ApplyThenAnimate()
+    {
+        var wrapper = new { tasks = new[] { new { todo = this.todo, date = this.date, time = this.time } } };
+        string json = JsonUtility.ToJson(wrapper);
+
+        // userId 없이 bulk/accept 호출
+        using var req = new UnityWebRequest($"{backendUrl}/bulk/accept", "POST");
+        byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
+        req.uploadHandler = new UploadHandlerRaw(body) { contentType = "application/json" };
+        req.downloadHandler = new DownloadHandlerBuffer();
+        yield return req.SendWebRequest();
+
+        if (req.result == UnityWebRequest.Result.Success)
+        {
+            Move(+moveDistance, () => {
+                StartCoroutine(AnimateDelete(rt.anchoredPosition, rt.anchoredPosition + Vector2.right * moveDistance));
+            });
+        }
+        else
+        {
+            ReturnToOriginal();
+            cg.blocksRaycasts = true;
+        }
+    }
+
+    #endregion
+
+    #region Animation Helpers
 
     void ReturnToOriginal()
     {
-        HideDeleteButton();
-        HideApplyButton();
-        Move(0f, () => { swipeState = SwipeState.Normal; });
+        HideDeleteButton(); HideApplyButton();
+        Move(0f, () => swipeState = SwipeState.Normal);
         swipeState = SwipeState.Moving;
     }
 
-    void Move(float distance, Action onComplete = null)
+    void Move(float distance, Action onComplete)
     {
-        if (moveCoroutine != null)
-            StopCoroutine(moveCoroutine);
+        if (moveCoroutine != null) StopCoroutine(moveCoroutine);
         Vector2 target = originalPos + new Vector2(distance, 0f);
-        moveCoroutine = StartCoroutine(AnimateMove(rt.anchoredPosition, target, () => {
-            onComplete?.Invoke();
-            // 애니메이션 끝나면 상태 복구 (onComplete에서 처리)
-        }));
+        moveCoroutine = StartCoroutine(AnimateMove(rt.anchoredPosition, target, onComplete));
     }
 
-    IEnumerator AnimateMove(Vector2 from, Vector2 to, Action onComplete = null)
+    IEnumerator AnimateMove(Vector2 from, Vector2 to, Action onComplete)
     {
-        float elapsed = 0f;
+        float elapsed = 0;
         while (elapsed < animDuration)
         {
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / animDuration);
-            float ease = 1f - (1f - t) * (1f - t);
-            rt.anchoredPosition = Vector2.Lerp(from, to, ease);
+            float e = 1f - (1f - t) * (1f - t);
+            rt.anchoredPosition = Vector2.Lerp(from, to, e);
             yield return null;
         }
         rt.anchoredPosition = to;
@@ -265,14 +273,14 @@ public class TodoItem : MonoBehaviour,
 
     IEnumerator AnimateDelete(Vector2 from, Vector2 to)
     {
-        float elapsed = 0f;
+        float elapsed = 0;
         while (elapsed < animDuration)
         {
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / animDuration);
-            float ease = 1f - (1f - t) * (1f - t);
-            rt.anchoredPosition = Vector2.Lerp(from, to, ease);
-            cg.alpha = Mathf.Lerp(1f, 0f, ease);
+            float e = 1f - (1f - t) * (1f - t);
+            rt.anchoredPosition = Vector2.Lerp(from, to, e);
+            cg.alpha = Mathf.Lerp(1f, 0f, e);
             yield return null;
         }
         Destroy(gameObject);

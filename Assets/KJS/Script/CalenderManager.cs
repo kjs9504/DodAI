@@ -127,10 +127,16 @@ public class CalenderManager : MonoBehaviour
             string dateStr = $"{year}-{month:D2}-{dayNumber:D2}";
             btn.onClick.RemoveAllListeners();
             btn.onClick.AddListener(() => {
-                // 반드시 MonoBehaviour.StartCoroutine 통해 네트워크 요청을 시작
-                todoListManager?.StartCoroutine(
-                    todoListManager.FetchAndShowTasksForDate(dateStr)
-                );
+                Debug.Log($"📅 날짜 클릭: {dateStr}");
+                if (todoListManager != null)
+                {
+                    // 백엔드에서 데이터를 가져와서 해당 날짜의 할 일만 표시
+                    StartCoroutine(todoListManager.FetchAndShowTasksForDate(dateStr));
+                }
+                else
+                {
+                    Debug.LogError("❌ TodoListManager가 할당되지 않았습니다!");
+                }
             });
         }
     }
