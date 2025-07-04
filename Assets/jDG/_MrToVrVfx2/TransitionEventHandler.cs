@@ -3,7 +3,7 @@ using UnityEngine.SceneManagement;
 
 public class TransitionEventHandler : MonoBehaviour
 {
-    public string nextSceneName = "VirtualScene"; // 이동할 씬 이름
+    public string nextSceneName = "VR_DodAI"; // 이동할 씬 이름
 
     public void OnTransitionComplete()
     {
