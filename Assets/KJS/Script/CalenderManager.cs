@@ -122,7 +122,7 @@ public class CalenderManager : MonoBehaviour
 
         // 날짜 셀 클릭 이벤트 연결 (현재 달만)
         var btn = cell.GetComponent<Button>();
-        if (btn != null && type == DayType.CurrentMonth)
+        if (btn != null && (type == DayType.CurrentMonth || type == DayType.Today))
         {
             string dateStr = $"{year}-{month:D2}-{dayNumber:D2}";
             btn.onClick.RemoveAllListeners();
@@ -130,7 +130,6 @@ public class CalenderManager : MonoBehaviour
                 Debug.Log($"📅 날짜 클릭: {dateStr}");
                 if (todoListManager != null)
                 {
-                    // 백엔드에서 데이터를 가져와서 해당 날짜의 할 일만 표시
                     StartCoroutine(todoListManager.FetchAndShowTasksForDate(dateStr));
                 }
                 else
