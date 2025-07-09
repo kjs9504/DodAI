@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/_Main/KMS/Prefabs/moon_rock_01.mat.meta
 guid: 130a70dafe8f1d643b2d0265f9beaad9
+========
+guid: 0d31d1be4c91c714f8abe6bb2c2a829f
+>>>>>>>> newMain:Assets/jDG/_Leveldi/Models/BlackHole/black_hole.mat.meta
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 2100000
