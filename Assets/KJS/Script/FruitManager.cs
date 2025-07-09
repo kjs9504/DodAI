@@ -78,7 +78,6 @@ public class FruitManager : MonoBehaviour
 
     private IEnumerator HandleOneTask(AcceptedTaskData task)
     {
-        // GET /api/fruits?acceptedTaskId={task.id}
         string url = $"{fruitUrl}/{task.id}";
         using (var www = UnityWebRequest.Get(url))
         {

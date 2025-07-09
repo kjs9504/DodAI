@@ -6882,7 +6882,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   acceptsUrl: http://localhost:8080/api/tasks/accepted
-  fruitUrl: http://localhost:8080/api/fruits
+  fruitUrl: http://localhost:8080/api/fruit
   fruitPrefab: {fileID: 1663855162341046343, guid: 3f4dbf4e918da1a42a63e1b8cf642c94, type: 3}
   parentTransform: {fileID: 997288519}
   minSpawn: {x: -5, y: 0, z: -5}
