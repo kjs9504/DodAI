@@ -6852,6 +6852,56 @@ Transform:
   - {fileID: 869245992}
   m_Father: {fileID: 1018310123}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &341419139
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 341419141}
+  - component: {fileID: 341419140}
+  m_Layer: 0
+  m_Name: FruitManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &341419140
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 341419139}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00f853396bc1c0344b00bde0bb3180c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  acceptsUrl: http://localhost:8080/api/tasks/accepted
+  fruitUrl: http://localhost:8080/api/fruits
+  fruitPrefab: {fileID: 1663855162341046343, guid: 3f4dbf4e918da1a42a63e1b8cf642c94, type: 3}
+  parentTransform: {fileID: 997288519}
+  minSpawn: {x: -5, y: 0, z: -5}
+  maxSpawn: {x: 5, y: 0, z: 5}
+--- !u!4 &341419141
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 341419139}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.89254, y: 0, z: 3.9919}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &361330231
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11736,6 +11786,11 @@ MonoBehaviour:
   _includeChildrenAsDependents: 1
   _gameObjects: []
   _monoBehaviours: []
+--- !u!4 &997288519 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5164980444923735835, guid: cf5e00f95bbc102419b456b1674f47f7, type: 3}
+  m_PrefabInstance: {fileID: 178190311}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &999617208
 GameObject:
   m_ObjectHideFlags: 0
@@ -12825,6 +12880,8 @@ MonoBehaviour:
   serverUrl: https://6ed6d809b129.ngrok-free.app/transcribe/
   todoListManager: {fileID: 1842023918}
   backendUrl: http://localhost:8080/api/tasks/bulk
+  errorPanel: {fileID: 0}
+  errorText: {fileID: 0}
 --- !u!82 &1260170003
 AudioSource:
   m_ObjectHideFlags: 0
@@ -20696,3 +20753,4 @@ SceneRoots:
   - {fileID: 1842023914}
   - {fileID: 178190311}
   - {fileID: 166069176}
+  - {fileID: 341419141}

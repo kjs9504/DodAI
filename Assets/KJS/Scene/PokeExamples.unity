@@ -1246,6 +1246,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   content: {fileID: 1206401080}
   itemPrefab: {fileID: 1150498837778987697, guid: 9f74bd8b58d4d13469177039a8253aaf, type: 3}
+  allTasks: []
 --- !u!1 &112177315
 GameObject:
   m_ObjectHideFlags: 0
@@ -9697,37 +9698,6 @@ MonoBehaviour:
   _includeChildrenAsDependents: 1
   _gameObjects: []
   _monoBehaviours: []
---- !u!1 &999990212
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 999990213}
-  m_Layer: 0
-  m_Name: Todolist
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!4 &999990213
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 999990212}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1010353940
 GameObject:
   m_ObjectHideFlags: 0
@@ -10642,6 +10612,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1260170001}
   - component: {fileID: 1260170000}
+  - component: {fileID: 1260170002}
   m_Layer: 0
   m_Name: MicRecoder
   m_TagString: Untagged
@@ -10677,6 +10648,23 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1260170002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1260169999}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea635cd905b7ac14e83d8bbb852db352, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  serverUrl: https://8527-211-186-8-83.ngrok-free.app/transcribe/
+  todoListManager: {fileID: 0}
+  backendUrl: http://localhost:8080/api/tasks/bulk
+  errorPanel: {fileID: 0}
+  errorText: {fileID: 0}
 --- !u!1 &1271243915
 GameObject:
   m_ObjectHideFlags: 0
@@ -18896,6 +18884,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   content: {fileID: 1316002958}
   itemPrefab: {fileID: 726835610184246047, guid: e3ba4a2b144a23240883cfcd50220a95, type: 3}
+  allTasks: []
 --- !u!1 &8035509329244641993
 GameObject:
   m_ObjectHideFlags: 0
@@ -19453,4 +19442,3 @@ SceneRoots:
   - {fileID: 1470937174}
   - {fileID: 1260170001}
   - {fileID: 112177317}
-  - {fileID: 999990213}
