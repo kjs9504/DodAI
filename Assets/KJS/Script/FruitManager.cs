@@ -98,6 +98,9 @@ public class FruitManager : MonoBehaviour
                     this.transform
                 );
 
+                var info = obj.AddComponent<FruitInfo>();
+                info.acceptedTaskId = task.id;
+
                 spawnedFruits.Add(new FruitData
                 {
                     acceptedTaskId = task.id,

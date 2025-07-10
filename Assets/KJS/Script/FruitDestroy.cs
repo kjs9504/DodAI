@@ -1,17 +1,66 @@
-using UnityEngine;
+ï»¿using UnityEngine;
+using System.Text;
+using UnityEngine.Networking;
+using System.Collections;
+using System.Collections.Generic;
+
+public class FruitInfo : MonoBehaviour
+{
+    // ì´ ê³¼ì¼ì´ ì—°ê²°ëœ AcceptedTaskì˜ ID
+    public long acceptedTaskId;
+}
 
 public class FruitDestroy : MonoBehaviour
 {
-    [Header("ºÎµúÈú ´ë»ó ÅÂ±×")]
     public string targetTag = "Target";
+    public string deleteUrl = "http://YOUR_SERVER_IP:8080/api/tasks/accepted";
 
-    // Fruit ÂÊ Collider¿¡ IsTrigger = trueÀÎ °æ¿ì
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag(targetTag))
+        if (!other.CompareTag(targetTag)) return;
+
+        Debug.Log($"v: hit {other.name}");
+
+        var info = GetComponent<FruitInfo>();
+        if (info != null)
         {
-            // ÆÄ±« Á÷Àü ÀÌÆåÆ®³ª »ç¿îµå ³Ö°í ½ÍÀ¸¸é ¿©±â¼­ Ã³¸®
-            Destroy(gameObject);
+            Debug.Log($"[FruitDestroy] Starting DELETE for acceptedTaskId={info.acceptedTaskId}");
+            StartCoroutine(DeleteAcceptedTask(info.acceptedTaskId));
         }
+        else
+        {
+            Debug.LogWarning("[FruitDestroy] FruitInfo ì»´í¬ë„ŒíŠ¸ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤!");
+        }
+
+        Destroy(gameObject);
     }
+
+    private IEnumerator DeleteAcceptedTask(long acceptedTaskId)
+    {
+        var reqObj = new DeleteRequest
+        {
+            tasks = new List<DeleteItem> { new DeleteItem { id = acceptedTaskId } }
+        };
+        string json = JsonUtility.ToJson(reqObj);
+        Debug.Log($"[FruitDestroy] DELETE ìš”ì²­ JSON: {json}");
+
+        using var req = new UnityWebRequest(deleteUrl, "DELETE");
+        byte[] body = Encoding.UTF8.GetBytes(json);
+        req.uploadHandler = new UploadHandlerRaw(body) { contentType = "application/json" };
+        req.downloadHandler = new DownloadHandlerBuffer();
+        req.SetRequestHeader("Content-Type", "application/json");
+
+        yield return req.SendWebRequest();
+
+        if (req.result == UnityWebRequest.Result.Success)
+            Debug.Log($"[FruitDestroy] DELETE ì„±ê³µ: {req.responseCode}");
+        else
+            Debug.LogError($"[FruitDestroy] DELETE ì‹¤íŒ¨: {req.error} ({req.responseCode})");
+    }
+
+    // JSON ì§ë ¬í™”ìš© í´ë˜ìŠ¤
+    [System.Serializable]
+    class DeleteRequest { public List<DeleteItem> tasks; }
+    [System.Serializable]
+    class DeleteItem { public long id; }
 }
