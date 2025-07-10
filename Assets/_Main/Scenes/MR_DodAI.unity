@@ -887,7 +887,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   animator: {fileID: 106171137}
-  sceneName: VR_DodAI_KMS
+  sceneName: VR_DodAI
 --- !u!1 &112177315
 GameObject:
   m_ObjectHideFlags: 0
