@@ -8,7 +8,7 @@ ModelImporter:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: black_hole
-    second: {fileID: 2100000, guid: 0d31d1be4c91c714f8abe6bb2c2a829f, type: 2}
+    second: {fileID: 2100000, guid: 2defd195be5dc5a4db5b4bae05868c10, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
