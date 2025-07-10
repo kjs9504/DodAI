@@ -1,10 +1,10 @@
-using System;
+ï»¿using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 
-// JSON ¡ê C# ¸ÅÇÎ¿ë
+// JSON â†” C# ë§¤í•‘ìš©
 [Serializable]
 public class AcceptedTaskData
 {
@@ -15,7 +15,7 @@ public class AcceptedTaskData
 [Serializable]
 public class AcceptedListData
 {
-    // ¹é¿£µå¿¡¼­ { "tasks":[ ¡¦ ] } ÇüÅÂ·Î ³»·Á¿Â´Ù°í °¡Á¤
+    // ë°±ì—”ë“œì—ì„œ { "tasks":[ â€¦ ] } í˜•íƒœë¡œ ë‚´ë ¤ì˜¨ë‹¤ê³  ê°€ì •
     public List<AcceptedTaskData> tasks;
 }
 
@@ -31,23 +31,25 @@ public class FruitData
 [Serializable]
 public class FruitListData
 {
-    // ¹é¿£µå¿¡¼­ { "fruits":[ ¡¦ ] } ÇüÅÂ·Î ³»·Á¿Â´Ù°í °¡Á¤
+    // ë°±ì—”ë“œì—ì„œ { "fruits":[ â€¦ ] } í˜•íƒœë¡œ ë‚´ë ¤ì˜¨ë‹¤ê³  ê°€ì •
     public List<FruitData> fruits;
 }
 
 public class FruitManager : MonoBehaviour
 {
-    [Header("¼ö¶ôµÈ ÇÒ ÀÏ ¸®½ºÆ® URL")]
+    [Header("ìˆ˜ë½ëœ í•  ì¼ ë¦¬ìŠ¤íŠ¸ URL")]
     public string acceptsUrl = "http://localhost:8080/api/tasks/accepted";
     [Header("Fruit API URL")]
     public string fruitUrl = "http://localhost:8080/api/fruits";
 
-    [Header("»ı¼ºÇÒ Prefab")]
+    [Header("ìƒì„±í•  Prefab")]
     public GameObject fruitPrefab;
-    [Header("Instantiate ÇÒ ºÎ¸ğ Transform")]
+    [Header("Instantiate í•  ë¶€ëª¨ Transform")]
     public Transform parentTransform;
 
-    // ·£´ı ½ºÆù ¹üÀ§
+    private List<FruitData> spawnedFruits = new List<FruitData>();
+
+    // ëœë¤ ìŠ¤í° ë²”ìœ„
     public Vector3 minSpawn = new Vector3(-5, 0, -5);
     public Vector3 maxSpawn = new Vector3(5, 0, 5);
 
@@ -64,7 +66,7 @@ public class FruitManager : MonoBehaviour
             yield return www.SendWebRequest();
             if (www.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogError($"AcceptedTasks GET ½ÇÆĞ: {www.error}");
+                Debug.LogError($"AcceptedTasks GET ì‹¤íŒ¨: {www.error}");
                 yield break;
             }
             var list = JsonUtility.FromJson<AcceptedListData>(www.downloadHandler.text);
@@ -84,36 +86,57 @@ public class FruitManager : MonoBehaviour
             yield return www.SendWebRequest();
             if (www.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogError($"Fruit GET ½ÇÆĞ for task {task.id}: {www.error}");
+                Debug.LogError($"Fruit GET ì‹¤íŒ¨ for task {task.id}: {www.error}");
                 yield break;
             }
+
             var fruits = JsonUtility.FromJson<FruitListData>(www.downloadHandler.text).fruits;
 
             if (fruits.Count == 0)
             {
-                // »õ·Î ½ºÆù
-                Vector3 pos = new Vector3(
-                    UnityEngine.Random.Range(minSpawn.x, maxSpawn.x),
-                    UnityEngine.Random.Range(minSpawn.y, maxSpawn.y),
-                    UnityEngine.Random.Range(minSpawn.z, maxSpawn.z)
-                );
-                Instantiate(fruitPrefab, pos, Quaternion.identity, parentTransform)
-                    .transform.localScale = Vector3.one;
+                Vector3 pos = RandomSpawnPosition();
+                Debug.Log($"[Spawn Position] {pos}");
 
-                // DB¿¡ ÀúÀå
-                yield return StartCoroutine(CreateFruit(task.id, pos));
+                if (fruitPrefab == null)
+                {
+                    Debug.LogError("âŒ fruitPrefabì´ nullì…ë‹ˆë‹¤!");
+                    yield break;
+                }
+
+                GameObject obj = Instantiate(fruitPrefab, pos, Quaternion.identity);
+                if (obj == null)
+                {
+                    Debug.LogError("âŒ Instantiate ì‹¤íŒ¨!");
+                    yield break;
+                }
+
+                obj.transform.SetParent(parentTransform, worldPositionStays: true);
+                Debug.Log($"âœ… ìƒì„± ì™„ë£Œ: {obj.name} ìœ„ì¹˜: {obj.transform.position}");
+
+                spawnedFruits.Add(new FruitData
+                {
+                    acceptedTaskId = task.id,
+                    posX = pos.x,
+                    posY = pos.y,
+                    posZ = pos.z,
+                    extraData = "{}"
+                });
             }
             else
             {
-                // ±âÁ¸ À§Ä¡ ±×´ë·Î ½ºÆù
-                foreach (var f in fruits)
-                {
-                    Vector3 pos = new Vector3(f.posX, f.posY, f.posZ);
-                    Instantiate(fruitPrefab, pos, Quaternion.identity, parentTransform)
-                        .transform.localScale = Vector3.one;
-                }
+                Debug.Log($"[INFO] ì´ë¯¸ ì¡´ì¬í•˜ëŠ” fruitì´ ìˆì–´ ìƒì„± ì•ˆ í•¨: taskId={task.id}");
             }
+
         }
+    }
+
+    private Vector3 RandomSpawnPosition()
+    {
+        return new Vector3(
+            UnityEngine.Random.Range(minSpawn.x, maxSpawn.x),
+            UnityEngine.Random.Range(minSpawn.y, maxSpawn.y),
+            UnityEngine.Random.Range(minSpawn.z, maxSpawn.z)
+        );
     }
 
     private IEnumerator CreateFruit(long taskId, Vector3 pos)
@@ -124,7 +147,7 @@ public class FruitManager : MonoBehaviour
             posX = pos.x,
             posY = pos.y,
             posZ = pos.z,
-            extraData = "{}"  // JSON ÇüÅÂ·Î º¸³»·Á¸é ¹®ÀÚ¿­·Î
+            extraData = "{}"  // JSON í˜•íƒœë¡œ ë³´ë‚´ë ¤ë©´ ë¬¸ìì—´ë¡œ
         };
         string json = JsonUtility.ToJson(dto);
 
@@ -137,8 +160,24 @@ public class FruitManager : MonoBehaviour
 
             yield return req.SendWebRequest();
             if (req.result != UnityWebRequest.Result.Success)
-                Debug.LogError($"Fruit POST ½ÇÆĞ: {req.error}");
+                Debug.LogError($"Fruit POST ì‹¤íŒ¨: {req.error}");
         }
+    }
+        public void OnSaveButtonPressed()
+    {
+        StartCoroutine(SaveAllSpawnedFruits());
+    }
+
+    private IEnumerator SaveAllSpawnedFruits()
+    {
+        foreach (var fruit in spawnedFruits)
+        {
+            yield return StartCoroutine(CreateFruit(
+                fruit.acceptedTaskId, new Vector3(fruit.posX, fruit.posY, fruit.posZ)));
+        }
+
+        Debug.Log("âœ… ëª¨ë“  fruit ì €ì¥ ì™„ë£Œ");
+        spawnedFruits.Clear(); // ì„ íƒ
     }
 }
 
