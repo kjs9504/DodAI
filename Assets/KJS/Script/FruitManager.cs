@@ -44,14 +44,10 @@ public class FruitManager : MonoBehaviour
 
     [Header("생성할 Prefab")]
     public GameObject fruitPrefab;
-    [Header("Instantiate 할 부모 Transform")]
-    public Transform parentTransform;
+    [Header("고정 스폰 위치 (Transform)")]
+    public Transform spawnPoint;
 
     private List<FruitData> spawnedFruits = new List<FruitData>();
-
-    // 랜덤 스폰 범위
-    public Vector3 minSpawn = new Vector3(-5, 0, -5);
-    public Vector3 maxSpawn = new Vector3(5, 0, 5);
 
     void Start()
     {
@@ -60,7 +56,6 @@ public class FruitManager : MonoBehaviour
 
     private IEnumerator InitFruits()
     {
-        Debug.Log("Fetching AcceptedTasks from " + acceptsUrl);
         using (var www = UnityWebRequest.Get(acceptsUrl))
         {
             yield return www.SendWebRequest();
@@ -70,18 +65,14 @@ public class FruitManager : MonoBehaviour
                 yield break;
             }
             var list = JsonUtility.FromJson<AcceptedListData>(www.downloadHandler.text);
-
             foreach (var task in list.tasks)
-            {
                 yield return StartCoroutine(HandleOneTask(task));
-            }
         }
     }
 
     private IEnumerator HandleOneTask(AcceptedTaskData task)
     {
-        string url = $"{fruitUrl}/{task.id}";
-        using (var www = UnityWebRequest.Get(url))
+        using (var www = UnityWebRequest.Get($"{fruitUrl}/{task.id}"))
         {
             yield return www.SendWebRequest();
             if (www.result != UnityWebRequest.Result.Success)
@@ -90,28 +81,22 @@ public class FruitManager : MonoBehaviour
                 yield break;
             }
 
-            var fruits = JsonUtility.FromJson<FruitListData>(www.downloadHandler.text).fruits;
+            var fruits = JsonUtility
+                .FromJson<FruitListData>(www.downloadHandler.text)
+                .fruits;
 
             if (fruits.Count == 0)
             {
-                Vector3 pos = RandomSpawnPosition();
-                Debug.Log($"[Spawn Position] {pos}");
+                // spawnPoint가 있으면 그 위치, 없으면 매니저 오브젝트 위치
+                Vector3 pos = spawnPoint != null ? spawnPoint.position : transform.position;
 
-                if (fruitPrefab == null)
-                {
-                    Debug.LogError("❌ fruitPrefab이 null입니다!");
-                    yield break;
-                }
-
-                GameObject obj = Instantiate(fruitPrefab, pos, Quaternion.identity);
-                if (obj == null)
-                {
-                    Debug.LogError("❌ Instantiate 실패!");
-                    yield break;
-                }
-
-                obj.transform.SetParent(parentTransform, worldPositionStays: true);
-                Debug.Log($"✅ 생성 완료: {obj.name} 위치: {obj.transform.position}");
+                // transform을 부모로 지정
+                GameObject obj = Instantiate(
+                    fruitPrefab,
+                    pos,
+                    Quaternion.identity,
+                    this.transform
+                );
 
                 spawnedFruits.Add(new FruitData
                 {
@@ -124,19 +109,9 @@ public class FruitManager : MonoBehaviour
             }
             else
             {
-                Debug.Log($"[INFO] 이미 존재하는 fruit이 있어 생성 안 함: taskId={task.id}");
+                Debug.Log($"이미 존재하는 fruit이 있어 생성 안 함: taskId={task.id}");
             }
-
         }
-    }
-
-    private Vector3 RandomSpawnPosition()
-    {
-        return new Vector3(
-            UnityEngine.Random.Range(minSpawn.x, maxSpawn.x),
-            UnityEngine.Random.Range(minSpawn.y, maxSpawn.y),
-            UnityEngine.Random.Range(minSpawn.z, maxSpawn.z)
-        );
     }
 
     private IEnumerator CreateFruit(long taskId, Vector3 pos)

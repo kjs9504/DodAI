@@ -16,6 +16,14 @@ TagManager:
   - QDSUIIcon
   - QDSUITextSecondaryColor
   - tntag
+  - QDSUISection
+  - QDSUITextInputField
+  - QDSUIPrimaryButton
+  - QDSUITextInvertedColor
+  - QDSUITextSecondaryInvertedColor
+  - QDSUIToggleCheckboxRadio
+  - QDSUIDestructiveButton
+  - Target
   layers:
   - Default
   - TransparentFX
