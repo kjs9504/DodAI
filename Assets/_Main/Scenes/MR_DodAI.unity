@@ -13263,7 +13263,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea635cd905b7ac14e83d8bbb852db352, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  serverUrl: https://8527-211-186-8-83.ngrok-free.app/transcribe/
+  serverUrl: https://397689e9f06d.ngrok-free.app/
   todoListManager: {fileID: 1842023918}
   backendUrl: http://localhost:8080/api/tasks/bulk
   errorPanel: {fileID: 1142006713}
