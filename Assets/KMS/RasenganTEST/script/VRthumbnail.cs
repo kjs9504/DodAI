@@ -1,11 +1,11 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class SceneLoader : MonoBehaviour
 {
     void Start()
     {
-        // "VirtualScene" ¾ÀÀ» Additive·Î ºÒ·¯¿À±â
+        // "VirtualScene" ì”¬ì„ Additiveë¡œ ë¶ˆëŸ¬ì˜¤ê¸°
         SceneManager.LoadScene("VR_DodAI", LoadSceneMode.Additive);
     }
 }

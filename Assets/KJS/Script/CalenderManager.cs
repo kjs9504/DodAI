@@ -15,6 +15,7 @@ public class CalenderManager : MonoBehaviour
 
     private int year, month;
     private Queue<GameObject> cellPool = new Queue<GameObject>();
+    private string lastDateClicked = null;
 
     enum DayType { PreviousMonth, CurrentMonth, Today, NextMonth }
 
@@ -23,6 +24,8 @@ public class CalenderManager : MonoBehaviour
         var now = DateTime.Now;
         year = now.Year;
         month = now.Month;
+        if (todoListManager != null)
+            todoListManager.HideList();      // TodoListManager가 달린 GameObject 비활성화
         DrawCalendar();
     }
 
@@ -126,15 +129,27 @@ public class CalenderManager : MonoBehaviour
         {
             string dateStr = $"{year}-{month:D2}-{dayNumber:D2}";
             btn.onClick.RemoveAllListeners();
-            btn.onClick.AddListener(() => {
+            btn.onClick.AddListener(() =>
+            {
                 Debug.Log($"📅 날짜 클릭: {dateStr}");
-                if (todoListManager != null)
+                if (todoListManager == null)
                 {
-                    StartCoroutine(todoListManager.FetchAndShowTasksForDate(dateStr));
+                    Debug.LogError("❌ TodoListManager가 할당되지 않았습니다!");
+                    return;
+                }
+
+                // ❸ 같은 날짜를 두 번 누르면 숨기고, 아니면 보여주면서 fetch
+                if (todoListManager.gameObject.activeSelf
+                    && lastDateClicked == dateStr)
+                {
+                    todoListManager.HideList();
+                    lastDateClicked = null;
                 }
                 else
                 {
-                    Debug.LogError("❌ TodoListManager가 할당되지 않았습니다!");
+                    lastDateClicked = dateStr;
+                    todoListManager.ShowList();
+                    StartCoroutine(todoListManager.FetchAndShowTasksForDate(dateStr));
                 }
             });
         }

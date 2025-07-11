@@ -44,14 +44,10 @@ public class FruitManager : MonoBehaviour
 
     [Header("생성할 Prefab")]
     public GameObject fruitPrefab;
-    [Header("Instantiate 할 부모 Transform")]
-    public Transform parentTransform;
+    [Header("고정 스폰 위치 (Transform)")]
+    public Transform spawnPoint;
 
     private List<FruitData> spawnedFruits = new List<FruitData>();
-
-    // 랜덤 스폰 범위
-    public Vector3 minSpawn = new Vector3(-5, 0, -5);
-    public Vector3 maxSpawn = new Vector3(5, 0, 5);
 
     void Start()
     {
@@ -60,7 +56,6 @@ public class FruitManager : MonoBehaviour
 
     private IEnumerator InitFruits()
     {
-        Debug.Log("Fetching AcceptedTasks from " + acceptsUrl);
         using (var www = UnityWebRequest.Get(acceptsUrl))
         {
             yield return www.SendWebRequest();
@@ -69,19 +64,37 @@ public class FruitManager : MonoBehaviour
                 Debug.LogError($"AcceptedTasks GET 실패: {www.error}");
                 yield break;
             }
-            var list = JsonUtility.FromJson<AcceptedListData>(www.downloadHandler.text);
 
-            foreach (var task in list.tasks)
+            string rawJson = www.downloadHandler.text;
+            Debug.Log($"[FruitManager] AcceptedTasks Raw JSON:\n{rawJson}");
+
+            // ② JSON → 객체 파싱
+            var list = JsonUtility.FromJson<AcceptedListData>(rawJson);
+
+            // ③ 파싱된 각 항목을 로그에 출력
+            if (list.tasks != null && list.tasks.Count > 0)
             {
-                yield return StartCoroutine(HandleOneTask(task));
+                foreach (var task in list.tasks)
+                {
+                    Debug.Log($"[FruitManager] AcceptedTask → " +
+                              $"id={task.id}, todo={task.todo}, date={task.date}, time={task.time}, userId={task.userId}");
+                }
             }
+            else
+            {
+                Debug.LogWarning("[FruitManager] AcceptedTasks 목록이 비어 있습니다.");
+            }
+
+            // ④ 기존 로직: 각 task 처리
+            foreach (var task in list.tasks)
+                yield return StartCoroutine(HandleOneTask(task));
         }
     }
 
     private IEnumerator HandleOneTask(AcceptedTaskData task)
     {
-        string url = $"{fruitUrl}/{task.id}";
-        using (var www = UnityWebRequest.Get(url))
+        // 먼저, 백엔드에 해당 taskId 로 fruit 리스트가 있는지 물어봅니다.
+        using (var www = UnityWebRequest.Get($"{fruitUrl}/{task.id}"))
         {
             yield return www.SendWebRequest();
             if (www.result != UnityWebRequest.Result.Success)
@@ -90,53 +103,58 @@ public class FruitManager : MonoBehaviour
                 yield break;
             }
 
-            var fruits = JsonUtility.FromJson<FruitListData>(www.downloadHandler.text).fruits;
+            // JSON → FruitListData 파싱 (root 필드 이름이 "fruits" 여야 합니다)
+            var json = www.downloadHandler.text;
+            var list = JsonUtility.FromJson<FruitListData>(json);
+            var fruits = list?.fruits ?? new List<FruitData>();
 
             if (fruits.Count == 0)
             {
-                Vector3 pos = RandomSpawnPosition();
-                Debug.Log($"[Spawn Position] {pos}");
+                // (1) spawnPoint 가 있으면 그 위치, 없으면 매니저 위치
+                Vector3 spawnPos = spawnPoint != null
+                    ? spawnPoint.position
+                    : transform.position;
 
-                if (fruitPrefab == null)
-                {
-                    Debug.LogError("❌ fruitPrefab이 null입니다!");
-                    yield break;
-                }
+                // (2) 월드 좌표, 완전한 회전(0,0,0)으로 인스턴스화
+                GameObject obj = Instantiate(
+                    fruitPrefab,
+                    spawnPos,
+                    Quaternion.identity   // world-space 회전을 0으로 고정
+                );
 
-                GameObject obj = Instantiate(fruitPrefab, pos, Quaternion.identity);
-                if (obj == null)
-                {
-                    Debug.LogError("❌ Instantiate 실패!");
-                    yield break;
-                }
+                // (3) 필요하면 월드 위치 그대로 자식으로 붙입니다.
+                //     부모 회전을 물려받지 않으려면 worldPositionStays: true 를 사용
+                obj.transform.SetParent(transform, worldPositionStays: true);
 
-                obj.transform.SetParent(parentTransform, worldPositionStays: true);
-                Debug.Log($"✅ 생성 완료: {obj.name} 위치: {obj.transform.position}");
+                Debug.Log("[FruitManager] after Instantiation rot = " + obj.transform.rotation.eulerAngles);
 
+                // (4) 다시 한번 확실히 회전 리셋
+                obj.transform.rotation = Quaternion.identity;
+
+                Debug.Log("[FruitManager] after zeroing rot = " + obj.transform.rotation.eulerAngles);
+
+                // (5) FruitInfoUI 컴포넌트를 꺼져 있거나 없으면 붙이고
+                var infoUI = obj.GetComponent<FruitInfoUI>()
+                             ?? obj.AddComponent<FruitInfoUI>();
+
+                // (6) JSON 데이터로 초기화
+                infoUI.Initialize(task);
+
+                // (7) 로컬 리스트에도 기록
                 spawnedFruits.Add(new FruitData
                 {
                     acceptedTaskId = task.id,
-                    posX = pos.x,
-                    posY = pos.y,
-                    posZ = pos.z,
+                    posX = spawnPos.x,
+                    posY = spawnPos.y,
+                    posZ = spawnPos.z,
                     extraData = "{}"
                 });
             }
             else
             {
-                Debug.Log($"[INFO] 이미 존재하는 fruit이 있어 생성 안 함: taskId={task.id}");
+                Debug.Log($"[FruitManager] 이미 존재하는 fruit이 있어 생성 안 함: taskId={task.id}");
             }
-
         }
-    }
-
-    private Vector3 RandomSpawnPosition()
-    {
-        return new Vector3(
-            UnityEngine.Random.Range(minSpawn.x, maxSpawn.x),
-            UnityEngine.Random.Range(minSpawn.y, maxSpawn.y),
-            UnityEngine.Random.Range(minSpawn.z, maxSpawn.z)
-        );
     }
 
     private IEnumerator CreateFruit(long taskId, Vector3 pos)
