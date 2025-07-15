@@ -113,7 +113,7 @@ public class CalenderManager : MonoBehaviour
                 if (bg != null)
                 {
                     // ��� ���, ���� ������
-                    bg.color = new Color32(255, 255, 255, 255);
+                    bg.color = new Color32(1, 1, 1, 1);
                 }
                 break;
 
