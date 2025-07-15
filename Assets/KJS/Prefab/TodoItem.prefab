@@ -184,6 +184,16 @@ MonoBehaviour:
   revealDeleteThreshold: 50
   deleteButton: {fileID: 3869066869406315599}
   applyButton: {fileID: 4987209498791984984}
+  backendUrl: http://localhost:8080/api/tasks
+  id: 0
+  todo: 
+  date: 
+  time: 
+  data:
+    id: 0
+    todo: 
+    date: 
+    time: 
 --- !u!114 &2512205361247233849
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -271,8 +281,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Title
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 7fc07862f94081547b31a872a0974745, type: 2}
-  m_sharedMaterial: {fileID: 4574049461754374190, guid: 7fc07862f94081547b31a872a0974745, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: d472bb038f1b6dd4ebbb3690ab2b4b70, type: 2}
+  m_sharedMaterial: {fileID: 7079181651545362223, guid: d472bb038f1b6dd4ebbb3690ab2b4b70, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -296,15 +306,15 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 50
-  m_fontSizeBase: 50
+  m_fontSize: 45
+  m_fontSizeBase: 45
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
   m_HorizontalAlignment: 2
-  m_VerticalAlignment: 512
+  m_VerticalAlignment: 256
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_wordSpacing: 0
@@ -777,8 +787,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Material: {fileID: 2100000, guid: 2c59325cff8447d47899d7e518a87833, type: 2}
-  m_Color: {r: 0.22352941, g: 0.2509804, b: 0.31764707, a: 0}
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.22352941, g: 0.2509804, b: 0.31764707, a: 0.7058824}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -895,15 +905,15 @@ MonoBehaviour:
       m_Calls: []
   m_text: Button
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: d472bb038f1b6dd4ebbb3690ab2b4b70, type: 2}
+  m_sharedMaterial: {fileID: 7079181651545362223, guid: d472bb038f1b6dd4ebbb3690ab2b4b70, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4281479730
-  m_fontColor: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
+    rgba: 4285229931
+  m_fontColor: {r: 0.42138356, g: 0.42138356, b: 0.42138356, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -1031,15 +1041,15 @@ MonoBehaviour:
       m_Calls: []
   m_text: Button
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: d472bb038f1b6dd4ebbb3690ab2b4b70, type: 2}
+  m_sharedMaterial: {fileID: 7079181651545362223, guid: d472bb038f1b6dd4ebbb3690ab2b4b70, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4281479730
-  m_fontColor: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
+    rgba: 4285295724
+  m_fontColor: {r: 0.42352942, g: 0.42352942, b: 0.42352942, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
