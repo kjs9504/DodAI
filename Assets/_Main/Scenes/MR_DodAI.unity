@@ -13809,7 +13809,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 348170360460564793, guid: 9f74bd8b58d4d13469177039a8253aaf, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 348170360460564793, guid: 9f74bd8b58d4d13469177039a8253aaf, type: 3}
       propertyPath: m_AnchorMin.x
@@ -13817,15 +13817,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 348170360460564793, guid: 9f74bd8b58d4d13469177039a8253aaf, type: 3}
       propertyPath: m_AnchorMin.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 348170360460564793, guid: 9f74bd8b58d4d13469177039a8253aaf, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 0
+      value: 800
       objectReference: {fileID: 0}
     - target: {fileID: 348170360460564793, guid: 9f74bd8b58d4d13469177039a8253aaf, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 0
+      value: 146
       objectReference: {fileID: 0}
     - target: {fileID: 348170360460564793, guid: 9f74bd8b58d4d13469177039a8253aaf, type: 3}
       propertyPath: m_LocalPosition.x
@@ -13857,11 +13857,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 348170360460564793, guid: 9f74bd8b58d4d13469177039a8253aaf, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 0
+      value: 480
       objectReference: {fileID: 0}
     - target: {fileID: 348170360460564793, guid: 9f74bd8b58d4d13469177039a8253aaf, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 0
+      value: -73
       objectReference: {fileID: 0}
     - target: {fileID: 348170360460564793, guid: 9f74bd8b58d4d13469177039a8253aaf, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -13933,19 +13933,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3590980924596435651, guid: 9f74bd8b58d4d13469177039a8253aaf, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3590980924596435651, guid: 9f74bd8b58d4d13469177039a8253aaf, type: 3}
       propertyPath: m_AnchorMin.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3590980924596435651, guid: 9f74bd8b58d4d13469177039a8253aaf, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 0
+      value: 91
       objectReference: {fileID: 0}
     - target: {fileID: 3590980924596435651, guid: 9f74bd8b58d4d13469177039a8253aaf, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 0
+      value: -12
       objectReference: {fileID: 0}
     - target: {fileID: 6770782802635874266, guid: 9f74bd8b58d4d13469177039a8253aaf, type: 3}
       propertyPath: m_Sprite
@@ -14021,19 +14021,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7194440014842689200, guid: 9f74bd8b58d4d13469177039a8253aaf, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7194440014842689200, guid: 9f74bd8b58d4d13469177039a8253aaf, type: 3}
       propertyPath: m_AnchorMin.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7194440014842689200, guid: 9f74bd8b58d4d13469177039a8253aaf, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 0
+      value: 390
       objectReference: {fileID: 0}
     - target: {fileID: 7194440014842689200, guid: 9f74bd8b58d4d13469177039a8253aaf, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 0
+      value: -65
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -94902,8 +94902,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: New Text
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 2ccef7652f011d1498bf5888e781816e, type: 2}
-  m_sharedMaterial: {fileID: 7607537136523329410, guid: 2ccef7652f011d1498bf5888e781816e, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: f2e288c2215b0514aa2b5f000e3d6da6, type: 2}
+  m_sharedMaterial: {fileID: 9183216158341591505, guid: f2e288c2215b0514aa2b5f000e3d6da6, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -94927,8 +94927,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 50
-  m_fontSizeBase: 50
+  m_fontSize: 70
+  m_fontSizeBase: 70
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
