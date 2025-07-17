@@ -1,44 +1,47 @@
-using UnityEngine.UI;             // Unity ³»Àå Text »ç¿ë ½Ã
-using UnityEngine;
+ï»¿using UnityEngine;
 using TMPro;
 using System;
 using System.Collections;
-using System.Globalization;    // ¿äÀÏ ·ÎÄÃ¶óÀÌÁî¿ë
+using System.Globalization;
 
 public class DateTimeDisplay : MonoBehaviour
 {
-    [Header("Assign UI TextMeshProUGUI component")]
+    [Header("Rich Text í™œì„±í™”ëœ TMP í•˜ë‚˜")]
     public TextMeshProUGUI uiText;
 
-    private void Start()
+    [Header("ì‹œ í¬ê¸°")] public int hourSize = 200;
+    [Header("ë¶„ í¬ê¸°")] public int minuteSize = 120;
+    [Header("AMPM í¬ê¸°")] public int ampmSize = 100;
+
+    // emâ€‘space (\u2003) / enâ€‘space (\u2002) ë“±ìœ¼ë¡œ ê°„ê²© ì¡°ì •
+    private const string spacer = "\u2003";
+
+    void Start()
     {
-        if (uiText == null)
-        {
-            Debug.LogError("UI TextMeshProUGUI°¡ ÇÒ´çµÇÁö ¾Ê¾Ò½À´Ï´Ù!");
-            enabled = false;
-            return;
-        }
-        StartCoroutine(UpdateTimeCoroutine());
+        uiText.richText = true;
+        StartCoroutine(UpdateTime());
     }
 
-    private IEnumerator UpdateTimeCoroutine()
+    private IEnumerator UpdateTime()
     {
-        // 1ÃÊ¸¶´Ù °»½Å
         while (true)
         {
-            UpdateTime();
+            DateTime now = DateTime.Now;
+            string hh = now.ToString("hh", CultureInfo.InvariantCulture);
+            string mm = now.ToString("mm", CultureInfo.InvariantCulture);
+            string tt = now.ToString("tt", CultureInfo.InvariantCulture);
+
+            uiText.text =
+                $"<size={hourSize}>{hh}</size>" +
+                $"<size={minuteSize}>:{mm}</size>" +
+                spacer +
+                $"<size={ampmSize}>{tt}</size>";
+
             yield return new WaitForSeconds(1f);
         }
     }
-
-    private void UpdateTime()
-    {
-        DateTime now = DateTime.Now;
-
-        // ½Ã°£°ú ºĞ¸¸ "HH:mm" Çü½ÄÀ¸·Î °¡Á®¿È (¿¹: "14:23")
-        string time = now.ToString("hh:mm tt", CultureInfo.InvariantCulture).ToLower();
-        uiText.text = time;
-    }
 }
+
+
 
 
