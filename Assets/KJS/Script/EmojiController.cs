@@ -89,6 +89,8 @@ public class MultiPokeUIToMeshController : MonoBehaviour
         if (it.mf == null || it.mr == null) return;
         if (it.pressedMesh != null) it.mf.mesh = it.pressedMesh;
         if (it.pressedMaterial != null) it.mr.material = it.pressedMaterial;
+
+        it.targetObject.transform.localScale = new Vector3(2f, 2f, 2f);
     }
 }
 
