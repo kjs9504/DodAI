@@ -3,11 +3,12 @@ using UnityEngine.EventSystems;
 using TMPro;
 using System.Globalization;
 using System;
+using Oculus.Interaction;
 
-[RequireComponent(typeof(Collider))] // Å¬¸¯À» ¹ŞÀ¸·Á¸é Collider ÇÊ¿ä
+[RequireComponent(typeof(Collider))] // Å¬ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Collider ï¿½Ê¿ï¿½
 public class FruitInfoUI : MonoBehaviour, IPointerClickHandler
 {
-    [Header("¡å ÀÌ ¿ÀºêÁ§Æ®ÀÇ Task µ¥ÀÌÅÍ (FruitManager ¿¡¼­ Initialize ÇØ ÁÙ °Í)")]
+    [Header("ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ®ï¿½ï¿½ Task ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ (FruitManager ï¿½ï¿½ï¿½ï¿½ Initialize ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½)")]
     public long id;
     public string todo;
     public string date;
@@ -15,27 +16,31 @@ public class FruitInfoUI : MonoBehaviour, IPointerClickHandler
     public string acceptedAt;
     public long? userId;
 
-    [Header("¡å Å¬¸¯ ½Ã º¸¿©ÁÙ UI ÆĞ³Î")]
-    [Tooltip("Inspector ¿¡¼­ ÇÒ´çÇØ¾ß ÇÕ´Ï´Ù.")]
+    [Header("ï¿½ï¿½ Å¬ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ UI ï¿½Ğ³ï¿½")]
+    [Tooltip("Inspector ï¿½ï¿½ï¿½ï¿½ ï¿½Ò´ï¿½ï¿½Ø¾ï¿½ ï¿½Õ´Ï´ï¿½.")]
     public GameObject infoPanel;
 
-    [Header("¡å UI ÆĞ³Î ¾ÈÀÇ ÅØ½ºÆ®µé")]
+    [Header("ï¿½ï¿½ UI ï¿½Ğ³ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ø½ï¿½Æ®ï¿½ï¿½")]
     public TextMeshProUGUI todoText;
-    public TextMeshProUGUI dateText;
-    public TextMeshProUGUI timeText;
-    public TextMeshProUGUI acceptedAtText;
     public TextMeshProUGUI userIdText;
+
+    [Header("ê°ì • ì„ íƒ ì»¨íŠ¸ë¡¤ëŸ¬")]
+    public EmojiController emojiController;
 
     private void Awake()
     {
         if (infoPanel != null)
             infoPanel.SetActive(false);
+        
+        // ì´ FruitInfoUIë¥¼ emojiControllerì— ë“±ë¡
+        if (emojiController != null)
+            emojiController.SetCurrentFruitInfoUI(this);
     }
 
     public TextMeshProUGUI billboardText;
 
     /// <summary>
-    /// FruitManager ¿¡¼­ ·¹½ÃÇÇ µ¥ÀÌÅÍ¸¦ Àü´ŞÇØ ÁÙ ¶§ È£ÃâÇÏ¼¼¿ä.
+    /// FruitManager ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ È£ï¿½ï¿½ï¿½Ï¼ï¿½ï¿½ï¿½.
     /// </summary>
     public void Initialize(AcceptedTaskData data)
     {
@@ -48,14 +53,17 @@ public class FruitInfoUI : MonoBehaviour, IPointerClickHandler
 
         if (billboardText != null)
         {
-            // "2025-07-04" °°Àº ¹®ÀÚ¿­¿¡¼­ ¿ù¡¤ÀÏ ÆÄ½Ì
+            // "2025-07-04" ë¬¸ìì—´ì—ì„œ ë‚ ì§œ íŒŒì‹±
             var dt = DateTime.ParseExact(data.date, "yyyy-MM-dd", CultureInfo.InvariantCulture);
-            billboardText.text = $"{dt.Month}¿ù {dt.Day}ÀÏÀÇ ¿­¸Å";
+            billboardText.text = $"{dt.Month}ì›” {dt.Day}ì¼ì˜ ì—´ë§¤";
         }
+
+        // ë°ì´í„° ì´ˆê¸°í™” í›„ UI ì—…ë°ì´íŠ¸
+        UpdateUI();
     }
 
     /// <summary>
-    /// Å¬¸¯µÇ¸é UI ÆĞ³ÎÀ» Åä±ÛÇÏ¸é¼­, ÅØ½ºÆ®¸¦ °»½ÅÇÕ´Ï´Ù.
+    /// Å¬ï¿½ï¿½ï¿½Ç¸ï¿½ UI ï¿½Ğ³ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ï¸é¼­, ï¿½Ø½ï¿½Æ®ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
     /// </summary>
     public void OnPointerClick(PointerEventData eventData)
     {
@@ -64,16 +72,21 @@ public class FruitInfoUI : MonoBehaviour, IPointerClickHandler
         bool now = !infoPanel.activeSelf;
         infoPanel.SetActive(now);
 
+        // billboardText í† ê¸€ (infoPanelê³¼ ë°˜ëŒ€ë¡œ)
+        if (billboardText != null)
+            billboardText.gameObject.SetActive(!now);
+
         if (now)
             UpdateUI();
     }
 
     private void UpdateUI()
     {
-        if (todoText != null) todoText.text = $"Todo: {todo}";
-        if (dateText != null) dateText.text = $"Date: {date}";
-        if (timeText != null) timeText.text = $"Time: {time}";
-        if (acceptedAtText != null) acceptedAtText.text = $"Accepted: {acceptedAt}";
+        // ë‚ ì§œì™€ ì‹œê°„ íŒŒì‹±
+        var dt = DateTime.ParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var timeSpan = TimeSpan.Parse(time);
+        
+        if (todoText != null) todoText.text = $"{dt.Month}ì›”{dt.Day}ì¼ {timeSpan.Hours}ì‹œ {timeSpan.Minutes}ë¶„ {todo}";
         if (userIdText != null) userIdText.text = userId.HasValue
                                         ? $"User ID: {userId.Value}"
                                         : "User ID: (none)";
