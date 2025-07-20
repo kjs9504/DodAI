@@ -18,7 +18,7 @@ EditorBuildSettings:
     path: Assets/KMS/RasenganTEST/scene/VirtualScene.unity
     guid: 66bf7652e1a5c9c429143f697c218088
   - enabled: 1
-    path: Assets/_Main/Scenes/VR_DodAI_KMS.unity
+    path: Assets/_Main/KMS/VR_DodAI_KMS.unity
     guid: 02161f602ccd47b4eb9fbff79b36d545
   m_configObjects:
     Unity.XR.Oculus.Settings: {fileID: 11400000, guid: bfa1182bd221b4ca89619141f66f1260, type: 2}
