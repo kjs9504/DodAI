@@ -51,6 +51,9 @@ public class FruitInfoUI : MonoBehaviour, IPointerClickHandler
         acceptedAt = data.acceptedAt;
         userId = data.userId;
 
+        // 디버그 로그 추가
+        Debug.Log($"[FruitInfoUI] Initialize - id={id}, todo={todo}, date={date}, time={time}, acceptedAt={acceptedAt}, userId={userId}");
+
         if (billboardText != null)
         {
             // "2025-07-04" 문자열에서 날짜 파싱
@@ -67,6 +70,7 @@ public class FruitInfoUI : MonoBehaviour, IPointerClickHandler
     /// </summary>
     public void OnPointerClick(PointerEventData eventData)
     {
+        Debug.Log("[FruitInfoUI] OnPointerClick 호출됨!");
         if (infoPanel == null) return;
 
         bool now = !infoPanel.activeSelf;

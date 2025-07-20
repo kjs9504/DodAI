@@ -3,23 +3,27 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
 using System;
+using UnityEngine.Networking;
+using System.Text;
+using System.Collections;
+
 
 [Serializable]
 public class FruitEmotionData
 {
-    public long taskId;
-    public string emotion; // "Fun", "슬픔", "분노", "허무감", "달성감"
-    public string todo;
-    public string date;
-    public string time;
-    public string acceptedAt;
-    public long? userId; // 나중에 필요하면 값 할당
-    public Vector3 position;
-    public string createdAt;
+    public string emotion;        // 감정 정보 (필수)
+    public string todo;          // 할 일 (필수)
+    public string date;          // 날짜 (필수) - yyyy-MM-dd 형식
+    public string time;          // 시간 (필수) - HH:mm:ss 형식
+    public Position position;    // 위치 정보 (JSONB)
+    public string acceptedAt;    // 수락 시간 (필수) - yyyy-MM-dd HH:mm:ss 형식
+    public string createdAt;     // 생성 시간 (필수) - yyyy-MM-dd HH:mm:ss 형식
 }
 
 public class EmojiController : MonoBehaviour
 {
+    public FruitEmotionData lastEmotionData; // 감정 선택 시 여기에 저장
+
     [System.Serializable]
     public class Item
     {
@@ -43,6 +47,9 @@ public class EmojiController : MonoBehaviour
 
         // 감정 타입 (1번: Fun, 2번: 슬픔, 3번: 분노, 4번: 허무감, 5번: 달성감)
         [HideInInspector] public string emotionType;
+
+        // Item 클래스에 원래 스케일 저장
+        [HideInInspector] public Vector3 originalScale;
     }
 
     [Tooltip("Public에서 할당한 UI 이미지(5개)에 1개씩 Item을 추가하세요.")]
@@ -54,7 +61,7 @@ public class EmojiController : MonoBehaviour
     void Awake()
     {
         // 감정 타입 설정
-        string[] emotions = { "Fun", "슬픔", "분노", "허무감", "달성감" };
+        string[] emotions = { "즐거움", "슬픔", "분노", "허무감", "달성감" };
         
         foreach (var it in items)
         {
@@ -111,6 +118,9 @@ public class EmojiController : MonoBehaviour
             };
             upEntry.callback.AddListener((data) => OnReleased(it));
             trig.triggers.Add(upEntry);
+
+            // Awake()에서 저장
+            it.originalScale = it.targetObject.transform.localScale;
         }
     }
 
@@ -120,6 +130,29 @@ public class EmojiController : MonoBehaviour
     public void SetCurrentFruitInfoUI(FruitInfoUI fruitInfoUI)
     {
         currentFruitInfoUI = fruitInfoUI;
+    }
+
+    /// <summary>
+    /// emotion 값에 따라 UI/3D 오브젝트 상태를 변경
+    /// </summary>
+    public void SetEmotion(string emotion)
+    {
+        Debug.Log($"[EmojiController] SetEmotion 호출: emotion={emotion}");
+        foreach (var it in items)
+        {
+            Debug.Log($"[EmojiController] 비교: it.emotionType={it.emotionType}, emotion={emotion}");
+            if (it.emotionType == emotion)
+            {
+                Debug.Log($"[EmojiController] 적용: {emotion} → pressedMesh/Material");
+                if (it.pressedMesh != null) it.mf.mesh = it.pressedMesh;
+                if (it.pressedMaterial != null) it.mr.material = it.pressedMaterial;
+            }
+            else
+            {
+                if (it.normalMesh != null) it.mf.mesh = it.normalMesh;
+                if (it.normalMaterial != null) it.mr.material = it.normalMaterial;
+            }
+        }
     }
 
     private void OnPressed(Item it)
@@ -142,7 +175,7 @@ public class EmojiController : MonoBehaviour
         // 아래 두 줄을 주석 처리 또는 삭제!
         // if (it.normalMesh != null) it.mf.mesh = it.normalMesh;
         // if (it.normalMaterial != null) it.mr.material = it.normalMaterial;
-        it.targetObject.transform.localScale = Vector3.one;
+        it.targetObject.transform.localScale = it.originalScale; // ← 문제의 코드
 
         // FRUIT JSON 생성
         CreateFruitJSON(it.emotionType);
@@ -159,64 +192,35 @@ public class EmojiController : MonoBehaviour
             return;
         }
 
-        var fruitData = new FruitEmotionData
+        lastEmotionData = new FruitEmotionData
         {
-            taskId = currentFruitInfoUI.id,
             emotion = emotion,
             todo = currentFruitInfoUI.todo,
-            date = currentFruitInfoUI.date,
-            time = currentFruitInfoUI.time,
-            acceptedAt = currentFruitInfoUI.acceptedAt,
-            userId = currentFruitInfoUI.userId, // FruitInfoUI.userId가 null이면 그대로 null
-            position = currentFruitInfoUI.transform.position,
-            createdAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+            date = currentFruitInfoUI.date,  // 기존 Fruit의 date 사용
+            time = currentFruitInfoUI.time,  // 기존 Fruit의 time 사용
+            position = new Position { x = currentFruitInfoUI.transform.position.x, y = currentFruitInfoUI.transform.position.y, z = currentFruitInfoUI.transform.position.z },
+            acceptedAt = currentFruitInfoUI.acceptedAt,  // 기존 Fruit의 acceptedAt 사용
+            createdAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
         };
 
         try
         {
-            string json = JsonUtility.ToJson(fruitData, true);
+            string json = JsonUtility.ToJson(lastEmotionData, true);
             Debug.Log("JsonUtility 결과: " + json);
             Debug.Log($"🍎 FRUIT JSON 생성 완료:\n{json}");
+            
+                    // 디버깅 정보
+        Debug.Log($"🔍 emotion 값: {lastEmotionData.emotion}");
+        Debug.Log($"🔍 todo 값: {lastEmotionData.todo}");
+        Debug.Log($"🔍 date 값: {lastEmotionData.date}");
+        Debug.Log($"🔍 time 값: {lastEmotionData.time}");
+        Debug.Log($"🔍 acceptedAt 값: {lastEmotionData.acceptedAt}");
+        Debug.Log($"🔍 position 값: ({lastEmotionData.position.x}, {lastEmotionData.position.y}, {lastEmotionData.position.z})");
         }
         catch (Exception e)
         {
             Debug.LogError("CreateFruitJSON 예외 발생: " + e);
         }
-
-        // 현재 Fruit이 Snap되어 있는지 확인하고 업데이트
-        UpdateSnapDataIfNeeded(fruitData);
-
-        // 여기서 서버로 전송하거나 다른 처리를 할 수 있습니다
-        // SendToServer(json);
-    }
-
-    /// <summary>
-    /// 현재 Fruit이 Snap되어 있다면 Snap 데이터 업데이트
-    /// </summary>
-    private void UpdateSnapDataIfNeeded(FruitEmotionData fruitData)
-    {
-        // SnapDataManager 찾기
-        var snapDataManager = FindObjectOfType<SnapDataManager>();
-        if (snapDataManager == null)
-        {
-            Debug.LogWarning("SnapDataManager를 찾을 수 없습니다.");
-            return;
-        }
-
-        // 현재 Fruit이 Snap되어 있는 Snap 찾기
-        var allSnapData = snapDataManager.GetAllSnapData();
-        foreach (var snapData in allSnapData)
-        {
-            if (snapData.attachedFruitId == fruitData.taskId.ToString())
-            {
-                // Snap 데이터 업데이트
-                snapDataManager.AttachFruitToSnap(snapData.snapId, fruitData);
-                Debug.Log($"Snap 데이터 업데이트 완료: {snapData.snapId} - 감정: {fruitData.emotion}");
-                return;
-            }
-        }
-
-        Debug.Log("현재 Fruit이 Snap되어 있지 않습니다.");
     }
 
     /// <summary>

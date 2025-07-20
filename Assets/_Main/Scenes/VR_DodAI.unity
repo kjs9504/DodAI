@@ -16559,7 +16559,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 08ea230845d97074fa0b233d49fc8ad3, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 08ea230845d97074fa0b233d49fc8ad3, type: 3}
       propertyPath: m_TagString
@@ -56459,7 +56459,7 @@ Transform:
   m_GameObject: {fileID: 931840437}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.224, y: 1.121, z: 0.328}
+  m_LocalPosition: {x: 0.453, y: 1.716, z: 0.328}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -57306,7 +57306,6 @@ GameObject:
   - component: {fileID: 957750483}
   - component: {fileID: 957750482}
   - component: {fileID: 957750484}
-  - component: {fileID: 957750485}
   m_Layer: 0
   m_Name: SceneManager
   m_TagString: Untagged
@@ -57357,20 +57356,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 32654c5c13716bd449ee25c1e95d4c7b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &957750485
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 957750481}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 243002e8e577ae645aff3239b49d25b4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  snapDataUrl: http://localhost:8080/api/snaps
-  snapDataList: []
 --- !u!1 &959181125
 GameObject:
   m_ObjectHideFlags: 0
@@ -85537,26 +85522,6 @@ MonoBehaviour:
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
---- !u!1 &1428688930 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 3393668378629173339, guid: 41d8da5948fe85d4dbefb72c844d8379, type: 3}
-  m_PrefabInstance: {fileID: 8352610213507534965}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1428688934
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1428688930}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7f122eba30d0c604ca19e4a951a24521, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  snapId: 1
-  snapName: No1
-  snapDataManager: {fileID: 957750485}
 --- !u!1 &1432080595
 GameObject:
   m_ObjectHideFlags: 0
@@ -114991,10 +114956,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 3393668378629173339, guid: 41d8da5948fe85d4dbefb72c844d8379, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1428688934}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 41d8da5948fe85d4dbefb72c844d8379, type: 3}
 --- !u!1001 &8934703130185841211
 PrefabInstance:
