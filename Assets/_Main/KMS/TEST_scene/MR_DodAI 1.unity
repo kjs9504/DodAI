@@ -7598,7 +7598,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5164980444923735834, guid: cf5e00f95bbc102419b456b1674f47f7, type: 3}
       propertyPath: m_Name
-      value: Time
+      value: Time_KMS
       objectReference: {fileID: 0}
     - target: {fileID: 5164980444923735835, guid: cf5e00f95bbc102419b456b1674f47f7, type: 3}
       propertyPath: m_RootOrder
@@ -87255,8 +87255,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Do your day
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 21a80368c58cf9a48bd945780602e038, type: 2}
-  m_sharedMaterial: {fileID: -174924030099944797, guid: 21a80368c58cf9a48bd945780602e038, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -90703,7 +90703,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5164980444923735834, guid: cf5e00f95bbc102419b456b1674f47f7, type: 3}
       propertyPath: m_Name
-      value: TodoList
+      value: TodoList_KMS
       objectReference: {fileID: 0}
     - target: {fileID: 5164980444923735834, guid: cf5e00f95bbc102419b456b1674f47f7, type: 3}
       propertyPath: m_IsActive
@@ -95159,8 +95159,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: New Text
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 21a80368c58cf9a48bd945780602e038, type: 2}
-  m_sharedMaterial: {fileID: -174924030099944797, guid: 21a80368c58cf9a48bd945780602e038, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
