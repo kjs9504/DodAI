@@ -56459,7 +56459,7 @@ Transform:
   m_GameObject: {fileID: 931840437}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.453, y: 1.716, z: 0.328}
+  m_LocalPosition: {x: 0.7829, y: 0.9594, z: -0.118}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -57329,6 +57329,9 @@ MonoBehaviour:
   fruitUrl: http://localhost:8080/api/fruit
   fruitPrefab: {fileID: 2921789279522913649, guid: ad312cb541b8dd94bbb670215ec66dd0, type: 3}
   spawnPoint: {fileID: 931840438}
+  spawnRange: {x: 0.1, y: 0.1, z: 0.1}
+  fruitsPerLayer: 5
+  fruitHeight: 1
 --- !u!4 &957750483
 Transform:
   m_ObjectHideFlags: 0

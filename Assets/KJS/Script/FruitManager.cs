@@ -56,6 +56,12 @@ public class FruitManager : MonoBehaviour
     public GameObject fruitPrefab;
     [Header("고정 스폰 위치 (Transform)")]
     public Transform spawnPoint;
+    [Header("랜덤 스폰 범위 (±값, 예: 2,1,2)")]
+    public Vector3 spawnRange = new Vector3(2, 1, 2); // Inspector에서 조절
+    [Header("한 층에 들어갈 과일 개수")]
+    public int fruitsPerLayer = 5; // Inspector에서 조절
+    [Header("과일 높이(쌓임 간격)")]
+    public float fruitHeight = 1.0f; // Inspector에서 조절
 
     private List<FruitData> spawnedFruits = new List<FruitData>();
 
@@ -151,7 +157,7 @@ public class FruitManager : MonoBehaviour
                 
                 // (1) spawnPoint 가 있으면 그 위치, 없으면 매니저 위치
                 Vector3 spawnPos = spawnPoint != null
-                    ? spawnPoint.position
+                    ? GetBasketSpawnPosition(spawnedFruits.Count)
                     : transform.position;
                 
                 Debug.Log($"[FruitManager] 스폰 위치: {spawnPos}");
@@ -216,7 +222,7 @@ public class FruitManager : MonoBehaviour
                     if (fruit.position != null)
                         spawnPos = new Vector3(fruit.position.x, fruit.position.y, fruit.position.z);
                     else
-                        spawnPos = spawnPoint != null ? spawnPoint.position : transform.position;
+                        spawnPos = spawnPoint != null ? GetBasketSpawnPosition(spawnedFruits.Count) : transform.position;
 
                     if (fruitPrefab == null)
                     {
@@ -305,6 +311,17 @@ public class FruitManager : MonoBehaviour
 
         Debug.Log("✅ 모든 fruit 저장 완료");
         spawnedFruits.Clear(); // 선택
+    }
+
+    // 층마다 랜덤 쌓임 위치 생성 함수
+    private Vector3 GetBasketSpawnPosition(int fruitIndex)
+    {
+        Vector3 basePos = spawnPoint != null ? spawnPoint.position : transform.position;
+        int layer = fruitIndex / fruitsPerLayer;
+        float x = basePos.x + UnityEngine.Random.Range(-spawnRange.x, spawnRange.x);
+        float z = basePos.z + UnityEngine.Random.Range(-spawnRange.z, spawnRange.z);
+        float y = basePos.y + (layer * fruitHeight) + UnityEngine.Random.Range(-0.1f, 0.1f);
+        return new Vector3(x, y, z);
     }
 }
 
