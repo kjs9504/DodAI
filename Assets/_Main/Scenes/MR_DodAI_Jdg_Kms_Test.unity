@@ -30910,7 +30910,7 @@ MonoBehaviour:
   yearLabel: {fileID: 1340710496}
   dayNumberLabel: {fileID: 760340245}
   dayOfWeekLabel: {fileID: 1713394604}
-  todoListManager: {fileID: 0}
+  todoListManager: {fileID: 1785381904}
 --- !u!1 &685846634
 GameObject:
   m_ObjectHideFlags: 0
