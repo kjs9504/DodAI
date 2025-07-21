@@ -2,95 +2,218 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
+using System;
+using System.Collections;
+using System.Linq;
 
-public class MultiPokeUIToMeshController : MonoBehaviour
+[Serializable]
+public class FruitEmotionData
 {
+    public string emotion;
+    public string todo;
+    public string date;
+    public string time;
+    public Position position;
+    public string acceptedAt;
+    public string createdAt;
+}
+
+public class EmojiController : MonoBehaviour
+{
+    public FruitEmotionData lastEmotionData;
+
     [System.Serializable]
     public class Item
     {
-        [Header("¡á Å¬¸¯ÇÒ UI Image (¹öÆ°)")]
-        public Image uiButton;          // Å¬¸¯ ÀÔ·Â ¹ŞÀ» UI
+        [Header("í´ë¦­í•  UI Image (ë²„íŠ¼)")]
+        public Image uiButton;
 
-        [Header("¡á º¯°æ ´ë»ó 3D ¿ÀºêÁ§Æ®")]
-        public GameObject targetObject;  // ÀÌ ¿ÀºêÁ§Æ®ÀÇ MeshFilter/MeshRenderer º¯°æ
+        [Header("ì´ ë²„íŠ¼ì´ ì œì–´í•  3D ì˜¤ë¸Œì íŠ¸ (Inspectorì—ì„œ í• ë‹¹ ê°€ëŠ¥)")]
+        public GameObject targetObject;  // â† ìˆ˜ì •: Inspector ìš°ì„  í• ë‹¹
 
-        [Header("¡á ´­·ÈÀ» ¶§ Àû¿ëÇÒ Mesh/Material")]
+        [Header("ì´ ë²„íŠ¼ì˜ ëˆŒë¦° ìƒíƒœ Mesh/Material")]
         public Mesh pressedMesh;
         public Material pressedMaterial;
 
-        // ·±Å¸ÀÓ¿¡ ÀúÀåµÇ´Â ¿ø·¡ »óÅÂ
         [HideInInspector] public Mesh normalMesh;
         [HideInInspector] public Material normalMaterial;
-
-        // ·±Å¸ÀÓ Ä³½Ã
         [HideInInspector] public MeshFilter mf;
         [HideInInspector] public MeshRenderer mr;
+        [HideInInspector] public string emotionType;
+        [HideInInspector] public Vector3 originalScale;
     }
 
-    [Tooltip("Public¿¡ ÇÒ´çÇÑ UI ÀÌ¹ÌÁö(5°³)¸¶´Ù 1°³¾¿ ItemÀ» Ãß°¡ÇÏ¼¼¿ä.")]
     public List<Item> items = new List<Item>(5);
+    private FruitInfoUI currentFruitInfoUI;
 
     void Awake()
     {
-        foreach (var it in items)
+        string[] emotions = { "ì¦ê±°ì›€", "ìŠ¬í””", "ë¶„ë…¸", "í—ˆë¬´ê°", "ë‹¬ì„±ê°" };
+
+        for (int index = 0; index < items.Count; index++)
         {
-            // 1) UI Image ÇÒ´ç Ã¼Å©
+            var it = items[index];
+            it.emotionType = (index < emotions.Length) ? emotions[index] : $"Unknown{index}";
+
+            // 1) uiButton ì²´í¬
             if (it.uiButton == null)
             {
-                Debug.LogWarning($"MultiPokeUIToMeshController: uiButtonÀÌ ÇÒ´çµÇÁö ¾ÊÀ½ (Item ÀÎµ¦½º {items.IndexOf(it)})");
+                Debug.LogWarning($"[EmojiController] Item[{index}]ì˜ uiButtonì´ í• ë‹¹ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤");
                 continue;
             }
 
-            // 2) targetObject ¾øÀ¸¸é Self(¹öÆ° ¿ÀºêÁ§Æ®) »ç¿ë
+            // 2) targetObject: Inspectorì— í• ë‹¹ëœ ê²Œ ìˆìœ¼ë©´ ê·¸ëŒ€ë¡œ, ì—†ìœ¼ë©´ uiButton ìì‹ì—ì„œ Sphere ê²€ìƒ‰
             if (it.targetObject == null)
-                it.targetObject = it.uiButton.gameObject;
+            {
+                var sphereTr = it.uiButton.transform
+                    .GetComponentsInChildren<Transform>(true)
+                    .FirstOrDefault(t => t.name == "Sphere");
+                if (sphereTr != null)
+                {
+                    it.targetObject = sphereTr.gameObject;
+                    Debug.Log($"[EmojiController] Item[{index}] uiButton ìì‹ Sphere í• ë‹¹: {it.targetObject.name}");
+                }
+                else
+                {
+                    it.targetObject = it.uiButton.gameObject;
+                    Debug.LogWarning($"[EmojiController] Item[{index}] Sphereë¥¼ ì°¾ì§€ ëª»í•´ uiButtonìœ¼ë¡œ ëŒ€ì²´");
+                }
+            }
+            else
+            {
+                Debug.Log($"[EmojiController] Item[{index}] Inspectorë¡œ targetObject ì§€ì •: {it.targetObject.name}");
+            }
 
-            // 3) MeshFilter / MeshRenderer Å½»ö (ÀÚ½Ä Æ÷ÇÔ)
-            if (!it.targetObject.TryGetComponent<MeshFilter>(out it.mf))
-                it.mf = it.targetObject.GetComponentInChildren<MeshFilter>();
-            if (!it.targetObject.TryGetComponent<MeshRenderer>(out it.mr))
-                it.mr = it.targetObject.GetComponentInChildren<MeshRenderer>();
-
+            // 3) MeshFilter/MeshRenderer ìºì‹œ
+            it.mf = it.targetObject.GetComponentInChildren<MeshFilter>();
+            it.mr = it.targetObject.GetComponentInChildren<MeshRenderer>();
             if (it.mf == null || it.mr == null)
             {
-                Debug.LogError($"[{name}] Item[{items.IndexOf(it)}]: '{it.targetObject.name}'¿¡ MeshFilter/MeshRenderer°¡ ¾ø½À´Ï´Ù.");
+                Debug.LogError($"Item[{index}]ì— MeshFilter/MeshRenderer ëˆ„ë½");
                 continue;
             }
 
-            // 4) ¿ø·¡ »óÅÂ ÀúÀå
+            // 4) ê¸°ë³¸ ìƒíƒœ ì €ì¥
             it.normalMesh = it.mf.mesh;
             it.normalMaterial = it.mr.material;
 
-            // 5) UI Image ¿¡ RaycastTarget ÄÑ±â
+            // 5) Raycast í™œì„±í™”
             it.uiButton.raycastTarget = true;
 
-            // 6) EventTrigger Ãß°¡
+            // 6) EventTrigger ì—°ê²°
             var trig = it.uiButton.gameObject.AddComponent<EventTrigger>();
+            var down = new EventTrigger.Entry { eventID = EventTriggerType.PointerDown };
+            down.callback.AddListener((data) => OnPressed(it));
+            trig.triggers.Add(down);
+            var up = new EventTrigger.Entry { eventID = EventTriggerType.PointerUp };
+            up.callback.AddListener((data) => OnReleased(it));
+            trig.triggers.Add(up);
 
-            // PointerDown ¡æ OnPressed
-            var downEntry = new EventTrigger.Entry
-            {
-                eventID = EventTriggerType.PointerDown
-            };
-            downEntry.callback.AddListener((data) => OnPressed(it));
-            trig.triggers.Add(downEntry);
+            it.originalScale = it.targetObject.transform.localScale;
+        }
+    }
 
-            // PointerUp ¡æ OnReleased
-            var upEntry = new EventTrigger.Entry
-            {
-                eventID = EventTriggerType.PointerUp
-            };
-            trig.triggers.Add(upEntry);
+    public void SetCurrentFruitInfoUI(FruitInfoUI fruitInfoUI)
+    {
+        currentFruitInfoUI = fruitInfoUI;
+    }
+
+    public void SetEmotion(string emotion)
+    {
+        Debug.Log($"[EmojiController] ê°ì • '{emotion}' ì„¤ì • ì‹œì‘");
+
+        if (items == null || items.Count == 0)
+        {
+            Debug.LogWarning("itemsê°€ ì´ˆê¸°í™”ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤. ì§€ì—° ì ìš©.");
+            StartCoroutine(SetEmotionDelayed(emotion));
+            return;
+        }
+
+        // --- ìˆ˜ì •: 1) ëª¨ë“  ì•„ì´í…œì„ ê¸°ë³¸ ìƒíƒœë¡œ ë¦¬ì…‹ ---
+        foreach (var it in items)
+        {
+            if (it.mf != null) it.mf.mesh = it.normalMesh;
+            if (it.mr != null) it.mr.material = it.normalMaterial;
+        }
+
+        // --- ìˆ˜ì •: 2) í•´ë‹¹ ê°ì • ì•„ì´í…œë§Œ ì ìš© ---
+        var target = items.FirstOrDefault(it => it.emotionType == emotion);
+        if (target != null)
+        {
+            if (target.pressedMesh != null) target.mf.mesh = Instantiate(target.pressedMesh);
+            if (target.pressedMaterial != null) target.mr.material = new Material(target.pressedMaterial);
+            Debug.Log($"[EmojiController] ê°ì • '{emotion}' ì ìš© ì™„ë£Œ");
+            // FruitInfoUIì˜ currentEmotionë„ ê°±ì‹ 
+            if (currentFruitInfoUI != null)
+                currentFruitInfoUI.SetEmotion(emotion);
+        }
+        else
+        {
+            Debug.LogWarning($"ê°ì • '{emotion}' íƒ€ì…ì„ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤. ì‚¬ìš© ê°€ëŠ¥í•œ ê°ì •: {string.Join(", ", items.Select(it => it.emotionType))}");
         }
     }
 
     private void OnPressed(Item it)
     {
         if (it.mf == null || it.mr == null) return;
+        if (it.normalMesh == null) it.normalMesh = it.mf.mesh;
+        if (it.normalMaterial == null) it.normalMaterial = it.mr.material;
         if (it.pressedMesh != null) it.mf.mesh = it.pressedMesh;
         if (it.pressedMaterial != null) it.mr.material = it.pressedMaterial;
+    }
 
-        it.targetObject.transform.localScale = new Vector3(2f, 2f, 2f);
+    private void OnReleased(Item it)
+    {
+        if (it.mf == null || it.mr == null)
+            return;
+
+        // 1) ì‹¤ì œ ê°ì • ì ìš© (ë¹„ì£¼ì–¼ + FruitInfoUI.currentEmotion ê°±ì‹ )
+        SetEmotion(it.emotionType);
+
+        // 2) JSON ìƒì„± ë° (ì›í•˜ë©´) ì„œë²„ ì „ì†¡
+        CreateFruitJSON(it.emotionType);
+        // â†’ ë§Œì•½ ë°”ë¡œ ì„œë²„ë¡œë„ ë³´ë‚´ê³  ì‹¶ë‹¤ë©´ SendToServer(json) í˜¸ì¶œì„ CreateFruitJSON ì•ˆì— ì¶”ê°€í•˜ì„¸ìš”.
+
+        // 3) ì›ë˜ ìŠ¤ì¼€ì¼ë¡œ ë³µì›
+        it.targetObject.transform.localScale = it.originalScale;
+    }
+
+    private void CreateFruitJSON(string emotion)
+    {
+        if (currentFruitInfoUI == null)
+        {
+            Debug.LogWarning("FruitInfoUIê°€ ì„¤ì •ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
+            return;
+        }
+        lastEmotionData = new FruitEmotionData
+        {
+            emotion = emotion,
+            todo = currentFruitInfoUI.todo,
+            date = currentFruitInfoUI.date,
+            time = currentFruitInfoUI.time,
+            position = new Position
+            {
+                x = currentFruitInfoUI.transform.position.x,
+                y = currentFruitInfoUI.transform.position.y,
+                z = currentFruitInfoUI.transform.position.z
+            },
+            acceptedAt = currentFruitInfoUI.acceptedAt,
+            createdAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+        };
+        string json = JsonUtility.ToJson(lastEmotionData, true);
+        Debug.Log($"ğŸ FRUIT JSON:\n{json}");
+    }
+
+    private IEnumerator SetEmotionDelayed(string emotion)
+    {
+        while (items == null || items.Count == 0)
+            yield return null;
+        SetEmotion(emotion);
+    }
+
+    void OnDestroy()
+    {
+        Debug.Log($"{gameObject.name} Destroy (StackTrace: {Environment.StackTrace})");
     }
 }
 

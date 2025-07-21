@@ -16,11 +16,15 @@ public class TodoItem : MonoBehaviour,
     public float animDuration = 0.2f;
     public float revealDeleteThreshold = 50f;
 
-    [Header("Delete Button")]
-    public Button deleteButton;
+    // public Button deleteButton; // 삭제 버튼 사용 안함
 
     [Header("Apply Button")]
     public Button applyButton;
+
+    [Header("수락(체크) 버튼")]
+    public Button acceptButton; // 오른쪽 끝 체크 버튼
+    public Image checkMarkImage; // 체크 애니메이션용 이미지(Inspector에서 연결)
+    public float checkAnimDuration = 0.3f;
 
     [Header("Backend Settings")]
     public string backendUrl = "http://localhost:8080/api/tasks";
@@ -49,7 +53,7 @@ public class TodoItem : MonoBehaviour,
     // 이동 코루틴 핸들
     Coroutine moveCoroutine;
 
-    enum SwipeState { Normal, DeleteShown, ApplyShown, Moving }
+    enum SwipeState { Normal, Moving } // DeleteShown, ApplyShown 제거
     SwipeState swipeState = SwipeState.Normal;
 
     void Awake()
@@ -57,17 +61,11 @@ public class TodoItem : MonoBehaviour,
         rt = GetComponent<RectTransform>();
         cg = GetComponent<CanvasGroup>();
         parentScroll = GetComponentInParent<ScrollRect>();
-
-        if (deleteButton != null)
-        {
-            deleteButton.onClick.AddListener(OnDeleteButton);
-            HideDeleteButton();
-        }
-        if (applyButton != null)
-        {
-            applyButton.onClick.AddListener(OnApplyButton);
-            HideApplyButton();
-        }
+        // acceptButton 클릭 이벤트 연결
+        if (acceptButton != null)
+            acceptButton.onClick.AddListener(OnAcceptButton);
+        if (checkMarkImage != null)
+            checkMarkImage.enabled = false; // 처음엔 비활성화
     }
 
     public void OnBeginDrag(PointerEventData e)
@@ -125,39 +123,19 @@ public class TodoItem : MonoBehaviour,
         if (swipeState == SwipeState.Moving) return;
         float finalDelta = rt.anchoredPosition.x - originalPos.x;
 
-        if (swipeState == SwipeState.DeleteShown && finalDelta >= thresholdPixels)
+        // 어느 방향이든 revealDeleteThreshold 이상 이동하면 삭제
+        if (Mathf.Abs(finalDelta) >= revealDeleteThreshold)
         {
-            ReturnToOriginal(); return;
-        }
-        if (swipeState == SwipeState.ApplyShown && finalDelta <= -revealDeleteThreshold)
-        {
-            ReturnToOriginal(); return;
-        }
-
-        if (finalDelta <= -revealDeleteThreshold)
-        {
-            ShowDeleteButton(); HideApplyButton();
-            Move(-moveDistance, () => swipeState = SwipeState.DeleteShown);
-            swipeState = SwipeState.Moving;
-        }
-        else if (finalDelta >= thresholdPixels)
-        {
-            ShowApplyButton(); HideDeleteButton();
-            Move(+moveDistance, () => swipeState = SwipeState.ApplyShown);
+            cg.blocksRaycasts = false;
+            StartCoroutine(DeleteThenAnimateDirect());
             swipeState = SwipeState.Moving;
         }
         else
         {
-            HideDeleteButton(); HideApplyButton();
             Move(0f, () => swipeState = SwipeState.Normal);
             swipeState = SwipeState.Moving;
         }
     }
-
-    void ShowDeleteButton() { deleteButton?.gameObject.SetActive(true); deleteButton.interactable = true; swipeState = SwipeState.DeleteShown; }
-    void HideDeleteButton() { deleteButton?.gameObject.SetActive(false); deleteButton.interactable = false; if (swipeState == SwipeState.DeleteShown) swipeState = SwipeState.Normal; }
-    void ShowApplyButton() { applyButton?.gameObject.SetActive(true); applyButton.interactable = true; swipeState = SwipeState.ApplyShown; }
-    void HideApplyButton() { applyButton?.gameObject.SetActive(false); applyButton.interactable = false; if (swipeState == SwipeState.ApplyShown) swipeState = SwipeState.Normal; }
 
     #endregion
 
@@ -171,33 +149,30 @@ public class TodoItem : MonoBehaviour,
         deleteList.tasks = new List<TodoItemData> { data };
         string json = JsonUtility.ToJson(deleteList);
         Debug.Log("삭제용 JSON: " + json);
-        deleteButton.interactable = false;
         cg.blocksRaycasts = false;
-        StartCoroutine(DeleteThenAnimate(json));
+        StartCoroutine(DeleteThenAnimateDirect());
     }
 
-    IEnumerator DeleteThenAnimate(string json)
+    // SWIPE로 바로 삭제하는 코루틴
+    IEnumerator DeleteThenAnimateDirect()
     {
-        // 1) id 포함 전체 JSON 사용
+        // 삭제용 JSON 생성
+        TodoListData deleteList = new TodoListData();
+        deleteList.tasks = new List<TodoItemData> { data };
+        string json = JsonUtility.ToJson(deleteList);
         using var req = new UnityWebRequest($"{backendUrl}/bulk", "DELETE");
         byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
         req.uploadHandler = new UploadHandlerRaw(body) { contentType = "application/json" };
         req.downloadHandler = new DownloadHandlerBuffer();
         yield return req.SendWebRequest();
 
-        // 3) 성공 시 애니메이션, 실패 시 복구
         if (req.result == UnityWebRequest.Result.Success)
         {
-            Move(+moveDistance, () => {
-                StartCoroutine(AnimateDelete(
-                    rt.anchoredPosition,
-                    rt.anchoredPosition + Vector2.right * moveDistance
-                ));
-            });
+            StartCoroutine(AnimateDelete(rt.anchoredPosition, rt.anchoredPosition + Vector2.left * moveDistance));
         }
         else
         {
-            ReturnToOriginal();
+            Move(0f, () => swipeState = SwipeState.Normal);
             cg.blocksRaycasts = true;
         }
     }
@@ -206,21 +181,40 @@ public class TodoItem : MonoBehaviour,
 
     #region Apply + Backend
 
-    void OnApplyButton()
+    // 오른쪽 체크 버튼 클릭 시 호출
+    void OnAcceptButton()
     {
-        HideApplyButton();
+        Debug.Log("수락 버튼 클릭됨!");
+        if (checkMarkImage != null)
+            StartCoroutine(CheckMarkAnimation());
         cg.blocksRaycasts = false;
         // data 전체를 JSON으로 만들어 전송
         TodoListData applyList = new TodoListData();
         applyList.tasks = new List<TodoItemData> { data };
         string json = JsonUtility.ToJson(applyList);
-        Debug.Log("적용용 JSON: " + json);
+        Debug.Log("수락용 JSON: " + json);
         StartCoroutine(ApplyThenAnimate(json));
+    }
+
+    IEnumerator CheckMarkAnimation()
+    {
+        checkMarkImage.enabled = true;
+        checkMarkImage.color = new Color(0, 1, 0, 0); // 투명한 초록색
+        float elapsed = 0;
+        while (elapsed < checkAnimDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / checkAnimDuration);
+            checkMarkImage.color = new Color(0, 1, 0, t); // 점점 진해짐
+            checkMarkImage.transform.localScale = Vector3.Lerp(Vector3.one * 0.5f, Vector3.one, t);
+            yield return null;
+        }
+        checkMarkImage.color = new Color(0, 1, 0, 1);
+        checkMarkImage.transform.localScale = Vector3.one;
     }
 
     IEnumerator ApplyThenAnimate(string json)
     {
-        // userId 없이 bulk/accept 호출
         using var req = new UnityWebRequest($"{backendUrl}/bulk/accept", "POST");
         byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
         req.uploadHandler = new UploadHandlerRaw(body) { contentType = "application/json" };
@@ -229,13 +223,14 @@ public class TodoItem : MonoBehaviour,
 
         if (req.result == UnityWebRequest.Result.Success)
         {
-            Move(+moveDistance, () => {
+            // 체크 애니메이션 후 사라지게
+            yield return new WaitForSeconds(0.2f);
                 StartCoroutine(AnimateDelete(rt.anchoredPosition, rt.anchoredPosition + Vector2.right * moveDistance));
-            });
         }
         else
         {
-            ReturnToOriginal();
+            // 실패 시 체크 마크 숨기고 복구
+            if (checkMarkImage != null) checkMarkImage.enabled = false;
             cg.blocksRaycasts = true;
         }
     }
@@ -246,7 +241,6 @@ public class TodoItem : MonoBehaviour,
 
     void ReturnToOriginal()
     {
-        HideDeleteButton(); HideApplyButton();
         Move(0f, () => swipeState = SwipeState.Normal);
         swipeState = SwipeState.Moving;
     }
@@ -313,8 +307,7 @@ public class TodoItem : MonoBehaviour,
         rt.SetParent(canvas.transform, worldPositionStays: true);
 
         // 2) **모든 아이템의 삭제 버튼을 일괄 숨기기**
-        foreach (var item in originalParent.GetComponentsInChildren<TodoItem>())
-            item.HideDeleteButton();
+        // 삭제 버튼 관련 코드 제거
     }
 
     void HandleReorderDrag(PointerEventData e)
@@ -347,10 +340,6 @@ public class TodoItem : MonoBehaviour,
         rt.SetSiblingIndex(placeholder.transform.GetSiblingIndex());
         Destroy(placeholder);
         // 2) **삭제 버튼 숨기기** 추가!
-        HideDeleteButton();
-        HideApplyButton();
-
-        // 3) Raycast 복원
         cg.blocksRaycasts = true;
     }
 
