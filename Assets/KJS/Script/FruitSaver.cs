@@ -18,17 +18,34 @@ public class FruitSaver : MonoBehaviour
     public string apiEndpoint = "/api/fruit"; // 서버 API에 맞게 설정
 
     public EmojiController emojiController; // Inspector에서 연결
+    public FruitInfoUI fruitInfoUI; // Inspector에서 연결
 
-    public void SaveLastEmotion()
+    public void SaveCurrentFruit()
     {
-        if (emojiController != null && emojiController.lastEmotionData != null)
+        if (fruitInfoUI == null)
         {
-            SaveFruitEmotion(emojiController.lastEmotionData);
+            Debug.LogWarning("FruitInfoUI가 연결되어 있지 않습니다!");
+            return;
         }
-        else
+
+        // FruitInfoUI에서 값 읽어서 새로 DTO 생성
+        var data = new FruitEmotionData
         {
-            Debug.LogWarning("저장할 감정 데이터가 없습니다!");
-        }
+            emotion = fruitInfoUI.currentEmotion ?? "",
+            todo = fruitInfoUI.todo,
+            date = fruitInfoUI.date,
+            time = fruitInfoUI.time,
+            position = new Position
+            {
+                x = fruitInfoUI.transform.position.x,
+                y = fruitInfoUI.transform.position.y,
+                z = fruitInfoUI.transform.position.z
+            },
+            acceptedAt = fruitInfoUI.acceptedAt,
+            createdAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+        };
+
+        SaveFruitEmotion(data);
     }
 
     public void SaveFruitEmotion(FruitEmotionData data)

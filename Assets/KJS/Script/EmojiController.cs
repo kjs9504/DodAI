@@ -3,93 +3,93 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
 using System;
-using UnityEngine.Networking;
-using System.Text;
 using System.Collections;
-
+using System.Linq;
 
 [Serializable]
 public class FruitEmotionData
 {
-    public string emotion;        // 감정 정보 (필수)
-    public string todo;          // 할 일 (필수)
-    public string date;          // 날짜 (필수) - yyyy-MM-dd 형식
-    public string time;          // 시간 (필수) - HH:mm:ss 형식
-    public Position position;    // 위치 정보 (JSONB)
-    public string acceptedAt;    // 수락 시간 (필수) - yyyy-MM-dd HH:mm:ss 형식
-    public string createdAt;     // 생성 시간 (필수) - yyyy-MM-dd HH:mm:ss 형식
+    public string emotion;
+    public string todo;
+    public string date;
+    public string time;
+    public Position position;
+    public string acceptedAt;
+    public string createdAt;
 }
 
 public class EmojiController : MonoBehaviour
 {
-    public FruitEmotionData lastEmotionData; // 감정 선택 시 여기에 저장
+    public FruitEmotionData lastEmotionData;
 
     [System.Serializable]
     public class Item
     {
         [Header("클릭할 UI Image (버튼)")]
-        public Image uiButton;          // 클릭 입력 받는 UI
+        public Image uiButton;
 
-        [Header("이 버튼이 제어할 3D 오브젝트")]
-        public GameObject targetObject;  // 이 오브젝트의 MeshFilter/MeshRenderer 제어
+        [Header("이 버튼이 제어할 3D 오브젝트 (Inspector에서 할당 가능)")]
+        public GameObject targetObject;  // ← 수정: Inspector 우선 할당
 
         [Header("이 버튼의 눌린 상태 Mesh/Material")]
         public Mesh pressedMesh;
         public Material pressedMaterial;
 
-        // 기본 상태에서 사용되는 데이터
         [HideInInspector] public Mesh normalMesh;
         [HideInInspector] public Material normalMaterial;
-
-        // 컴포넌트 캐시
         [HideInInspector] public MeshFilter mf;
         [HideInInspector] public MeshRenderer mr;
-
-        // 감정 타입 (1번: Fun, 2번: 슬픔, 3번: 분노, 4번: 허무감, 5번: 달성감)
         [HideInInspector] public string emotionType;
-
-        // Item 클래스에 원래 스케일 저장
         [HideInInspector] public Vector3 originalScale;
     }
 
-    [Tooltip("Public에서 할당한 UI 이미지(5개)에 1개씩 Item을 추가하세요.")]
     public List<Item> items = new List<Item>(5);
-
-    // FruitInfoUI 참조 (감정 선택 시 데이터를 가져오기 위해)
     private FruitInfoUI currentFruitInfoUI;
 
     void Awake()
     {
-        // 감정 타입 설정
         string[] emotions = { "즐거움", "슬픔", "분노", "허무감", "달성감" };
-        
-        foreach (var it in items)
-        {
-            // 감정 타입 할당
-            int index = items.IndexOf(it);
-            if (index < emotions.Length)
-                it.emotionType = emotions[index];
 
-            // 1) UI Image 할당 체크
+        for (int index = 0; index < items.Count; index++)
+        {
+            var it = items[index];
+            it.emotionType = (index < emotions.Length) ? emotions[index] : $"Unknown{index}";
+
+            // 1) uiButton 체크
             if (it.uiButton == null)
             {
-                Debug.LogWarning($"MultiPokeUIToMeshController: uiButton이 할당되지 않았습니다 (Item 인덱스 {items.IndexOf(it)})");
+                Debug.LogWarning($"[EmojiController] Item[{index}]의 uiButton이 할당되지 않았습니다");
                 continue;
             }
 
-            // 2) targetObject가 없으면 Self(버튼 오브젝트) 사용
+            // 2) targetObject: Inspector에 할당된 게 있으면 그대로, 없으면 uiButton 자식에서 Sphere 검색
             if (it.targetObject == null)
-                it.targetObject = it.uiButton.gameObject;
+            {
+                var sphereTr = it.uiButton.transform
+                    .GetComponentsInChildren<Transform>(true)
+                    .FirstOrDefault(t => t.name == "Sphere");
+                if (sphereTr != null)
+                {
+                    it.targetObject = sphereTr.gameObject;
+                    Debug.Log($"[EmojiController] Item[{index}] uiButton 자식 Sphere 할당: {it.targetObject.name}");
+                }
+                else
+                {
+                    it.targetObject = it.uiButton.gameObject;
+                    Debug.LogWarning($"[EmojiController] Item[{index}] Sphere를 찾지 못해 uiButton으로 대체");
+                }
+            }
+            else
+            {
+                Debug.Log($"[EmojiController] Item[{index}] Inspector로 targetObject 지정: {it.targetObject.name}");
+            }
 
-            // 3) MeshFilter / MeshRenderer 찾기 (자식 포함)
-            if (!it.targetObject.TryGetComponent<MeshFilter>(out it.mf))
-                it.mf = it.targetObject.GetComponentInChildren<MeshFilter>();
-            if (!it.targetObject.TryGetComponent<MeshRenderer>(out it.mr))
-                it.mr = it.targetObject.GetComponentInChildren<MeshRenderer>();
-
+            // 3) MeshFilter/MeshRenderer 캐시
+            it.mf = it.targetObject.GetComponentInChildren<MeshFilter>();
+            it.mr = it.targetObject.GetComponentInChildren<MeshRenderer>();
             if (it.mf == null || it.mr == null)
             {
-                Debug.LogError($"[{name}] Item[{items.IndexOf(it)}]: '{it.targetObject.name}'에 MeshFilter/MeshRenderer가 없습니다.");
+                Debug.LogError($"Item[{index}]에 MeshFilter/MeshRenderer 누락");
                 continue;
             }
 
@@ -97,93 +97,87 @@ public class EmojiController : MonoBehaviour
             it.normalMesh = it.mf.mesh;
             it.normalMaterial = it.mr.material;
 
-            // 5) UI Image의 RaycastTarget 활성화
+            // 5) Raycast 활성화
             it.uiButton.raycastTarget = true;
 
-            // 6) EventTrigger 추가
+            // 6) EventTrigger 연결
             var trig = it.uiButton.gameObject.AddComponent<EventTrigger>();
+            var down = new EventTrigger.Entry { eventID = EventTriggerType.PointerDown };
+            down.callback.AddListener((data) => OnPressed(it));
+            trig.triggers.Add(down);
+            var up = new EventTrigger.Entry { eventID = EventTriggerType.PointerUp };
+            up.callback.AddListener((data) => OnReleased(it));
+            trig.triggers.Add(up);
 
-            // PointerDown에서 OnPressed
-            var downEntry = new EventTrigger.Entry
-            {
-                eventID = EventTriggerType.PointerDown
-            };
-            downEntry.callback.AddListener((data) => OnPressed(it));
-            trig.triggers.Add(downEntry);
-
-            // PointerUp에서 OnReleased
-            var upEntry = new EventTrigger.Entry
-            {
-                eventID = EventTriggerType.PointerUp
-            };
-            upEntry.callback.AddListener((data) => OnReleased(it));
-            trig.triggers.Add(upEntry);
-
-            // Awake()에서 저장
             it.originalScale = it.targetObject.transform.localScale;
         }
     }
 
-    /// <summary>
-    /// 현재 선택된 FruitInfoUI 설정 (감정 선택 시 데이터를 가져오기 위해)
-    /// </summary>
     public void SetCurrentFruitInfoUI(FruitInfoUI fruitInfoUI)
     {
         currentFruitInfoUI = fruitInfoUI;
     }
 
-    /// <summary>
-    /// emotion 값에 따라 UI/3D 오브젝트 상태를 변경
-    /// </summary>
     public void SetEmotion(string emotion)
     {
-        Debug.Log($"[EmojiController] SetEmotion 호출: emotion={emotion}");
+        Debug.Log($"[EmojiController] 감정 '{emotion}' 설정 시작");
+
+        if (items == null || items.Count == 0)
+        {
+            Debug.LogWarning("items가 초기화되지 않았습니다. 지연 적용.");
+            StartCoroutine(SetEmotionDelayed(emotion));
+            return;
+        }
+
+        // --- 수정: 1) 모든 아이템을 기본 상태로 리셋 ---
         foreach (var it in items)
         {
-            Debug.Log($"[EmojiController] 비교: it.emotionType={it.emotionType}, emotion={emotion}");
-            if (it.emotionType == emotion)
-            {
-                Debug.Log($"[EmojiController] 적용: {emotion} → pressedMesh/Material");
-                if (it.pressedMesh != null) it.mf.mesh = it.pressedMesh;
-                if (it.pressedMaterial != null) it.mr.material = it.pressedMaterial;
-            }
-            else
-            {
-                if (it.normalMesh != null) it.mf.mesh = it.normalMesh;
-                if (it.normalMaterial != null) it.mr.material = it.normalMaterial;
-            }
+            if (it.mf != null) it.mf.mesh = it.normalMesh;
+            if (it.mr != null) it.mr.material = it.normalMaterial;
+        }
+
+        // --- 수정: 2) 해당 감정 아이템만 적용 ---
+        var target = items.FirstOrDefault(it => it.emotionType == emotion);
+        if (target != null)
+        {
+            if (target.pressedMesh != null) target.mf.mesh = Instantiate(target.pressedMesh);
+            if (target.pressedMaterial != null) target.mr.material = new Material(target.pressedMaterial);
+            Debug.Log($"[EmojiController] 감정 '{emotion}' 적용 완료");
+            // FruitInfoUI의 currentEmotion도 갱신
+            if (currentFruitInfoUI != null)
+                currentFruitInfoUI.SetEmotion(emotion);
+        }
+        else
+        {
+            Debug.LogWarning($"감정 '{emotion}' 타입을 찾을 수 없습니다. 사용 가능한 감정: {string.Join(", ", items.Select(it => it.emotionType))}");
         }
     }
 
     private void OnPressed(Item it)
     {
         if (it.mf == null || it.mr == null) return;
-
-        // 원본 mesh/material이 null일 때만 저장 (한 번만)
         if (it.normalMesh == null) it.normalMesh = it.mf.mesh;
         if (it.normalMaterial == null) it.normalMaterial = it.mr.material;
-
         if (it.pressedMesh != null) it.mf.mesh = it.pressedMesh;
         if (it.pressedMaterial != null) it.mr.material = it.pressedMaterial;
-    
     }
 
     private void OnReleased(Item it)
     {
-        if (it.mf == null || it.mr == null) return;
+        if (it.mf == null || it.mr == null)
+            return;
 
-        // 아래 두 줄을 주석 처리 또는 삭제!
-        // if (it.normalMesh != null) it.mf.mesh = it.normalMesh;
-        // if (it.normalMaterial != null) it.mr.material = it.normalMaterial;
-        it.targetObject.transform.localScale = it.originalScale; // ← 문제의 코드
+        // 1) 실제 감정 적용 (비주얼 + FruitInfoUI.currentEmotion 갱신)
+        SetEmotion(it.emotionType);
 
-        // FRUIT JSON 생성
+        // 2) JSON 생성 및 (원하면) 서버 전송
         CreateFruitJSON(it.emotionType);
+        // → 만약 바로 서버로도 보내고 싶다면 SendToServer(json) 호출을 CreateFruitJSON 안에 추가하세요.
+
+        // 3) 원래 스케일로 복원
+        it.targetObject.transform.localScale = it.originalScale;
     }
 
-    /// <summary>
-    /// 감정 데이터와 FruitInfoUI 데이터를 합쳐서 FRUIT JSON 생성
-    /// </summary>
     private void CreateFruitJSON(string emotion)
     {
         if (currentFruitInfoUI == null)
@@ -191,50 +185,35 @@ public class EmojiController : MonoBehaviour
             Debug.LogWarning("FruitInfoUI가 설정되지 않았습니다.");
             return;
         }
-
         lastEmotionData = new FruitEmotionData
         {
             emotion = emotion,
             todo = currentFruitInfoUI.todo,
-            date = currentFruitInfoUI.date,  // 기존 Fruit의 date 사용
-            time = currentFruitInfoUI.time,  // 기존 Fruit의 time 사용
-            position = new Position { x = currentFruitInfoUI.transform.position.x, y = currentFruitInfoUI.transform.position.y, z = currentFruitInfoUI.transform.position.z },
-            acceptedAt = currentFruitInfoUI.acceptedAt,  // 기존 Fruit의 acceptedAt 사용
+            date = currentFruitInfoUI.date,
+            time = currentFruitInfoUI.time,
+            position = new Position
+            {
+                x = currentFruitInfoUI.transform.position.x,
+                y = currentFruitInfoUI.transform.position.y,
+                z = currentFruitInfoUI.transform.position.z
+            },
+            acceptedAt = currentFruitInfoUI.acceptedAt,
             createdAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
         };
-
-        try
-        {
-            string json = JsonUtility.ToJson(lastEmotionData, true);
-            Debug.Log("JsonUtility 결과: " + json);
-            Debug.Log($"🍎 FRUIT JSON 생성 완료:\n{json}");
-            
-                    // 디버깅 정보
-        Debug.Log($"🔍 emotion 값: {lastEmotionData.emotion}");
-        Debug.Log($"🔍 todo 값: {lastEmotionData.todo}");
-        Debug.Log($"🔍 date 값: {lastEmotionData.date}");
-        Debug.Log($"🔍 time 값: {lastEmotionData.time}");
-        Debug.Log($"🔍 acceptedAt 값: {lastEmotionData.acceptedAt}");
-        Debug.Log($"🔍 position 값: ({lastEmotionData.position.x}, {lastEmotionData.position.y}, {lastEmotionData.position.z})");
-        }
-        catch (Exception e)
-        {
-            Debug.LogError("CreateFruitJSON 예외 발생: " + e);
-        }
+        string json = JsonUtility.ToJson(lastEmotionData, true);
+        Debug.Log($"🍎 FRUIT JSON:\n{json}");
     }
 
-    /// <summary>
-    /// 서버로 FRUIT JSON 전송 (필요시 구현)
-    /// </summary>
-    private void SendToServer(string json)
+    private IEnumerator SetEmotionDelayed(string emotion)
     {
-        // TODO: 서버 전송 로직 구현
-        Debug.Log("서버로 FRUIT JSON 전송: " + json);
+        while (items == null || items.Count == 0)
+            yield return null;
+        SetEmotion(emotion);
     }
 
     void OnDestroy()
     {
-        Debug.Log($"{gameObject.name}이(가) Destroy 되었습니다! (StackTrace: {Environment.StackTrace}) 부모: {transform.parent?.name}");
+        Debug.Log($"{gameObject.name} Destroy (StackTrace: {Environment.StackTrace})");
     }
 }
 

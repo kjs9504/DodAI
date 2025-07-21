@@ -27,6 +27,14 @@ public class FruitInfoUI : MonoBehaviour, IPointerClickHandler
     [Header("감정 선택 컨트롤러")]
     public EmojiController emojiController;
 
+    public string currentEmotion; // 현재 선택된 감정
+
+    public void SetEmotion(string emotion)
+    {
+        currentEmotion = emotion;
+        Debug.Log($"[FruitInfoUI] currentEmotion 갱신: {currentEmotion}");
+    }
+
     private void Awake()
     {
         if (infoPanel != null)
@@ -51,22 +59,20 @@ public class FruitInfoUI : MonoBehaviour, IPointerClickHandler
         acceptedAt = data.acceptedAt;
         userId = data.userId;
 
-        // 디버그 로그 추가
+       // 디버그 로그 추가
         Debug.Log($"[FruitInfoUI] Initialize - id={id}, todo={todo}, date={date}, time={time}, acceptedAt={acceptedAt}, userId={userId}");
 
         if (billboardText != null)
         {
-            // "2025-07-04" 문자열에서 날짜 파싱
             var dt = DateTime.ParseExact(data.date, "yyyy-MM-dd", CultureInfo.InvariantCulture);
             billboardText.text = $"{dt.Month}월 {dt.Day}일의 열매";
         }
 
-        // 데이터 초기화 후 UI 업데이트
         UpdateUI();
     }
 
     /// <summary>
-    /// Ŭ���Ǹ� UI �г��� ����ϸ鼭, �ؽ�Ʈ�� �����մϴ�.
+    /// ŬǸ UIг ϸ鼭, ؽƮ մϴ.
     /// </summary>
     public void OnPointerClick(PointerEventData eventData)
     {
@@ -82,6 +88,14 @@ public class FruitInfoUI : MonoBehaviour, IPointerClickHandler
 
         if (now)
             UpdateUI();
+
+        // 과일 클릭 시 FruitSaver의 fruitInfoUI를 자신(this)으로 갱신
+        var saver = FindObjectOfType<FruitSaver>();
+        if (saver != null)
+        {
+            saver.fruitInfoUI = this;
+            Debug.Log($"[FruitInfoUI] FruitSaver의 fruitInfoUI를 {this.gameObject.name}으로 갱신");
+        }
     }
 
     private void UpdateUI()

@@ -1025,7 +1025,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 5493907817817196734}
         m_TargetAssemblyTypeName: FruitSaver, Assembly-CSharp
-        m_MethodName: SaveLastEmotion
+        m_MethodName: SaveCurrentFruit
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1316,6 +1316,7 @@ MonoBehaviour:
   todoText: {fileID: 4635406312322220063}
   userIdText: {fileID: 0}
   emojiController: {fileID: 5406143758268966537}
+  currentEmotion: 
   billboardText: {fileID: 8602836968042928779}
 --- !u!114 &6061984329698192580
 MonoBehaviour:
@@ -1540,6 +1541,7 @@ MonoBehaviour:
   serverBaseUrl: http://localhost:8080
   apiEndpoint: /api/fruit
   emojiController: {fileID: 5406143758268966537}
+  fruitInfoUI: {fileID: 6662942227410773584}
 --- !u!114 &5406143758268966537
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1573,6 +1575,7 @@ MonoBehaviour:
     mf: {fileID: 0}
     mr: {fileID: 0}
     emotionType: 
+    originalScale: {x: 0, y: 0, z: 0}
   - uiButton: {fileID: 5567084167202341783}
     targetObject: {fileID: 1009157081795334878}
     pressedMesh: {fileID: 5982532046601528106, guid: bbaaae3596c4d29469d4f6c915843fce, type: 3}
@@ -1582,6 +1585,7 @@ MonoBehaviour:
     mf: {fileID: 0}
     mr: {fileID: 0}
     emotionType: 
+    originalScale: {x: 0, y: 0, z: 0}
   - uiButton: {fileID: 7695980717063497067}
     targetObject: {fileID: 1009157081795334878}
     pressedMesh: {fileID: 1614944155946130323, guid: c36c3f79c23149f4ea830e077cd7541e, type: 3}
@@ -1591,6 +1595,7 @@ MonoBehaviour:
     mf: {fileID: 0}
     mr: {fileID: 0}
     emotionType: 
+    originalScale: {x: 0, y: 0, z: 0}
   - uiButton: {fileID: 4811029445877614131}
     targetObject: {fileID: 1009157081795334878}
     pressedMesh: {fileID: 2022494331689553537, guid: 0e20ab7c8913e924cb4fbd1c4b6d01ed, type: 3}
@@ -1600,6 +1605,7 @@ MonoBehaviour:
     mf: {fileID: 0}
     mr: {fileID: 0}
     emotionType: 
+    originalScale: {x: 0, y: 0, z: 0}
   - uiButton: {fileID: 6074599506214577264}
     targetObject: {fileID: 1009157081795334878}
     pressedMesh: {fileID: -4542256552269943631, guid: cbf80adefa5b71b49935babd9fd23966, type: 3}
@@ -1609,6 +1615,7 @@ MonoBehaviour:
     mf: {fileID: 0}
     mr: {fileID: 0}
     emotionType: 
+    originalScale: {x: 0, y: 0, z: 0}
 --- !u!1 &3247363362299809891
 GameObject:
   m_ObjectHideFlags: 0

@@ -116,24 +116,18 @@ public class FruitManager : MonoBehaviour
             }
 
             // ④ 기존 로직: 각 task 처리
-            Debug.Log("[FruitManager] 각 task 처리 시작");
-            foreach (var task in list.tasks)
-            {
-                Debug.Log($"[FruitManager] task {task.id} 처리 시작");
-                yield return StartCoroutine(HandleOneTask(task));
-            }
-            Debug.Log("[FruitManager] 모든 task 처리 완료");
+                    foreach (var task in list.tasks)
+        {
+            yield return StartCoroutine(HandleOneTask(task));
+        }
         }
     }
 
     private IEnumerator HandleOneTask(AcceptedTaskData task)
     {
-        Debug.Log($"[FruitManager] HandleOneTask 시작: taskId={task.id}");
-        
         // 먼저, 백엔드에 해당 taskId 로 fruit 리스트가 있는지 물어봅니다.
         using (var www = UnityWebRequest.Get($"{fruitUrl}/{task.id}"))
         {
-            Debug.Log($"[FruitManager] Fruit GET 요청: {fruitUrl}/{task.id}");
             yield return www.SendWebRequest();
             
             if (www.result != UnityWebRequest.Result.Success)
@@ -149,11 +143,9 @@ public class FruitManager : MonoBehaviour
             
             var list = JsonUtility.FromJson<FruitListData>(json);
             var fruits = list?.fruits ?? new List<FruitData>();
-            Debug.Log($"[FruitManager] 기존 fruits 개수: {fruits.Count}");
 
             if (fruits.Count == 0)
             {
-                Debug.Log($"[FruitManager] 새로운 Fruit 생성 시작: taskId={task.id}");
                 
                 // (1) spawnPoint 가 있으면 그 위치, 없으면 매니저 위치
                 Vector3 spawnPos = spawnPoint != null
@@ -195,9 +187,33 @@ public class FruitManager : MonoBehaviour
                 
                 Debug.Log($"[FruitManager] FruitInfoUI 컴포넌트: {(infoUI != null ? "성공" : "NULL!")}");
 
-                // (6) JSON 데이터로 초기화
-                infoUI.Initialize(task);
+                // (5-1) EmojiController 찾아서 FruitInfoUI에 설정
+                var emojiCtrl = obj.GetComponent<EmojiController>();
+                if (emojiCtrl == null)
+                {
+                    emojiCtrl = obj.GetComponentInChildren<EmojiController>(false);
+                }
+                
+                // 모든 EmojiController 찾기 (디버깅용)
+                var allEmojiControllers = obj.GetComponentsInChildren<EmojiController>();
+                Debug.Log($"[FruitManager] 🔍 {obj.name}에서 발견된 모든 EmojiController 개수: {allEmojiControllers.Length}");
+                foreach (var ec in allEmojiControllers)
+                {
+                    Debug.Log($"[FruitManager] 🔍 {obj.name}에서 EmojiController 발견: {ec.gameObject.name} (items 개수: {ec.items.Count})");
+                }
+                
+                if (emojiCtrl != null && infoUI.emojiController == null)
+                {
+                    infoUI.emojiController = emojiCtrl;
+                }
 
+                // 신규 과일 생성 시
+                infoUI.Initialize(task);
+                if (infoUI.emojiController != null)
+                    infoUI.emojiController.SetCurrentFruitInfoUI(infoUI);
+                infoUI.currentEmotion = "";
+
+                // (6) JSON 데이터로 초기화
                 // (7) 로컬 리스트에도 기록
                 spawnedFruits.Add(new FruitData
                 {
@@ -212,8 +228,6 @@ public class FruitManager : MonoBehaviour
             }
             else
             {
-                Debug.Log($"[FruitManager] 기존 fruit이 있음. 저장된 위치에 생성: taskId={task.id}");
-                
                 // 기존 과일이 있으면 저장된 위치 정보를 사용해서 생성
                 foreach (var fruit in fruits)
                 {
@@ -245,14 +259,26 @@ public class FruitManager : MonoBehaviour
                     
                     Debug.Log($"[FruitManager] FruitInfoUI 컴포넌트: {(infoUI != null ? "성공" : "NULL!")}");
 
-                    infoUI.Initialize(task);
+                    // EmojiController 찾아서 FruitInfoUI에 설정
+                    var emojiCtrl = obj.GetComponent<EmojiController>();
+                    if (emojiCtrl == null)
+                    {
+                        emojiCtrl = obj.GetComponentInChildren<EmojiController>(false);
+                    }
+                    if (emojiCtrl != null && infoUI.emojiController == null)
+                    {
+                        infoUI.emojiController = emojiCtrl;
+                    }
 
-                    // emotion 값 전달
+                    infoUI.Initialize(task);
+                    if (infoUI.emojiController != null)
+                        infoUI.emojiController.SetCurrentFruitInfoUI(infoUI);
+                    infoUI.currentEmotion = !string.IsNullOrEmpty(fruit.emotion) ? fruit.emotion : "";
+
+                    // emotion 값 전달 (다음 프레임에서 실행하여 Awake 완료 보장)
                     if (!string.IsNullOrEmpty(fruit.emotion))
                     {
-                        var emojiCtrl = obj.GetComponentInChildren<EmojiController>();
-                        if (emojiCtrl != null)
-                            emojiCtrl.SetEmotion(fruit.emotion); // 아래에 SetEmotion 구현 필요
+                        StartCoroutine(SetEmotionAfterAwake(obj, fruit.emotion));
                     }
 
                     spawnedFruits.Add(new FruitData
@@ -313,7 +339,7 @@ public class FruitManager : MonoBehaviour
         spawnedFruits.Clear(); // 선택
     }
 
-    // 층마다 랜덤 쌓임 위치 생성 함수
+    // 층마다 랜더 쌓임 위치 생성 함수
     private Vector3 GetBasketSpawnPosition(int fruitIndex)
     {
         Vector3 basePos = spawnPoint != null ? spawnPoint.position : transform.position;
@@ -322,6 +348,37 @@ public class FruitManager : MonoBehaviour
         float z = basePos.z + UnityEngine.Random.Range(-spawnRange.z, spawnRange.z);
         float y = basePos.y + (layer * fruitHeight) + UnityEngine.Random.Range(-0.1f, 0.1f);
         return new Vector3(x, y, z);
+    }
+
+    /// <summary>
+    /// Awake 완료 후 SetEmotion 호출을 위한 코루틴
+    /// </summary>
+    private IEnumerator SetEmotionAfterAwake(GameObject fruitObj, string emotion)
+    {
+        // 한 프레임 대기하여 Awake 완료 보장
+        yield return null;
+        
+        // FruitInfoUI에서 참조하는 EmojiController 사용 (가장 확실한 방법)
+        var fruitInfoUI = fruitObj.GetComponent<FruitInfoUI>();
+        if (fruitInfoUI != null && fruitInfoUI.emojiController != null)
+        {
+            fruitInfoUI.emojiController.SetEmotion(emotion);
+        }
+        else
+        {
+            // 백업 방법: 메인 과일 오브젝트에서만 EmojiController 찾기
+            var emojiCtrl = fruitObj.GetComponent<EmojiController>();
+            if (emojiCtrl == null)
+            {
+                // 직접 자식에서만 찾기
+                emojiCtrl = fruitObj.GetComponentInChildren<EmojiController>(false); // false = 직접 자식만
+            }
+            
+            if (emojiCtrl != null)
+            {
+                emojiCtrl.SetEmotion(emotion);
+            }
+        }
     }
 }
 
