@@ -17,9 +17,13 @@ public class CalenderManager1 : MonoBehaviour
     public TextMeshProUGUI dayOfWeekLabel;      // 요일 영문 표시 (Monday, Tuesday...)
     public TodoListManager todoListManager;    // 인스펙터에서 연결
 
+    [Header("클릭 표시 UI")]
+    public GameObject circleIndicatorPrefab;    // 동그란 UI 프리팹 (인스펙터에서 할당)
+
     private int year, month;
     private Queue<GameObject> cellPool = new Queue<GameObject>();
     private string lastDateClicked = null;
+    private GameObject currentCircleIndicator = null;
 
     enum DayType { PreviousMonth, CurrentMonth, Today, NextMonth }
 
@@ -60,6 +64,13 @@ public class CalenderManager1 : MonoBehaviour
 
     public void DrawCalendar()
     {
+        // 기존 원형 표시기 제거
+        if (currentCircleIndicator != null)
+        {
+            Destroy(currentCircleIndicator);
+            currentCircleIndicator = null;
+        }
+
         // 1) 기존 셀 초기화
         foreach (Transform child in gridParent)
         {
@@ -173,6 +184,13 @@ public class CalenderManager1 : MonoBehaviour
                 {
                     todoListManager.HideList();
                     lastDateClicked = null;
+
+                    // 원형 표시기 제거
+                    if (currentCircleIndicator != null)
+                    {
+                        Destroy(currentCircleIndicator);
+                        currentCircleIndicator = null;
+                    }
                 }
                 else
                 {
@@ -180,11 +198,27 @@ public class CalenderManager1 : MonoBehaviour
                     todoListManager.ShowList();
                     StartCoroutine(todoListManager.FetchAndShowTasksForDate(dateStr));
 
-                    // 클릭한 날짜로 라벨 업데이트
-                    DateTime clickedDate = new DateTime(year, month, dayNumber);
-                    UpdateDateLabels(clickedDate);
+                    // 동그란 UI 표시
+                    ShowCircleIndicator(cell.transform);
                 }
             });
+        }
+    }
+
+    private void ShowCircleIndicator(Transform cellTransform)
+    {
+        // 기존 원형 표시기 제거
+        if (currentCircleIndicator != null)
+        {
+            Destroy(currentCircleIndicator);
+        }
+
+        // 새 원형 표시기 생성
+        if (circleIndicatorPrefab != null)
+        {
+            currentCircleIndicator = Instantiate(circleIndicatorPrefab, cellTransform);
+            // 셀의 중앙에 위치시키기
+            currentCircleIndicator.transform.localPosition = Vector3.zero;
         }
     }
 }
