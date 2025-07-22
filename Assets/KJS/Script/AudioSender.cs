@@ -14,7 +14,7 @@ public class AudioSender : MonoBehaviour
     public TodoListManager todoListManager;
 
     [Header("할 일 저장용 백엔드 URL")]
-    public string backendUrl = "http://localhost:8080/api/tasks/bulk";
+    public string backendUrl = "http://192.168.0.58:8080/api/tasks/bulk";
 
     [Header("에러 메시지용 패널")]
     public GameObject errorPanel;               // 에러 메시지 전체 패널

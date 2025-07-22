@@ -48,9 +48,9 @@ public class FruitListData
 public class FruitManager : MonoBehaviour
 {
     [Header("수락된 할 일 리스트 URL")]
-    public string acceptsUrl = "http://localhost:8080/api/tasks/accepted";
+    public string acceptsUrl = "http://192.168.0.58:8080/api/tasks/accepted";
     [Header("Fruit API URL")]
-    public string fruitUrl = "http://localhost:8080/api/fruits";
+    public string fruitUrl = "http://192.168.0.58:8080/api/fruits";
 
     [Header("생성할 Prefab")]
     public GameObject fruitPrefab;

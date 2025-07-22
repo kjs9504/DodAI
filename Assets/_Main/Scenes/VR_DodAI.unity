@@ -57369,8 +57369,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00f853396bc1c0344b00bde0bb3180c4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  acceptsUrl: http://localhost:8080/api/tasks/accepted
-  fruitUrl: http://localhost:8080/api/fruit
+  acceptsUrl: http://192.168.0.58:8080/api/tasks/accepted
+  fruitUrl: http://192.168.0.58:8080/api/fruit
   fruitPrefab: {fileID: 2921789279522913649, guid: ad312cb541b8dd94bbb670215ec66dd0, type: 3}
   spawnPoint: {fileID: 931840438}
   spawnRange: {x: 0.1, y: 0.1, z: 0.1}

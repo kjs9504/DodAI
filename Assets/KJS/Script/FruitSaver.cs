@@ -12,7 +12,7 @@ using System.Collections;
 public class FruitSaver : MonoBehaviour
 {
     [Header("서버 기본 URL (포트까지)")]
-    public string serverBaseUrl = "http://localhost:8080";
+    public string serverBaseUrl = "http://192.168.0.58:8080";
 
     [Header("API 엔드포인트 경로")]
     public string apiEndpoint = "/api/fruit"; // 서버 API에 맞게 설정

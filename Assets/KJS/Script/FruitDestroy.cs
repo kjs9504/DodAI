@@ -7,7 +7,7 @@ using UnityEngine.UI; // UI 버튼을 위한 네임스페이스 추가
 
 public class FruitDestroy : MonoBehaviour
 {
-    public string deleteUrl = "http://localhost:8080/api/tasks/accepted";
+    public string deleteUrl = "http://192.168.0.58:8080/api/tasks/accepted";
     
     // Inspector에서 직접 설정할 수 있는 ID (FruitInfo가 없을 때 사용)
     [Header("ID 설정")]

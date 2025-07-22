@@ -27,7 +27,7 @@ public class TodoItem : MonoBehaviour,
     public float checkAnimDuration = 0.3f;
 
     [Header("Backend Settings")]
-    public string backendUrl = "http://localhost:8080/api/tasks";
+    public string backendUrl = "http://192.168.0.58:8080/api/tasks";
 
     // 이 아이템이 표현하는 Task 정보 (캘린더 생성 시 할당)
     [HideInInspector] public long id;
