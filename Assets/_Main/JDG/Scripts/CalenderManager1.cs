@@ -32,11 +32,54 @@ public class CalenderManager1 : MonoBehaviour
         var now = DateTime.Now;
         year = now.Year;
         month = now.Month;
-        if (todoListManager != null)
-            todoListManager.HideList();      // TodoListManager가 달린 GameObject 비활성화
 
         UpdateDateLabels(now);  // 초기 날짜 라벨 업데이트
         DrawCalendar();
+
+        // 오늘 날짜의 투두리스트를 자동으로 표시
+        if (todoListManager != null)
+        {
+            string todayDateStr = $"{now.Year}-{now.Month:D2}-{now.Day:D2}";
+            lastDateClicked = todayDateStr;
+            todoListManager.ShowList();
+            StartCoroutine(todoListManager.FetchAndShowTasksForDate(todayDateStr));
+
+            // 오늘 날짜에 원형 표시기도 자동 생성
+            ShowCircleIndicatorForToday();
+        }
+    }
+
+    // 오늘 날짜 셀에 원형 표시기를 자동으로 생성하는 헬퍼 메서드
+    private void ShowCircleIndicatorForToday()
+    {
+        if (circleIndicatorPrefab == null) return;
+
+        // 오늘 날짜에 해당하는 셀을 찾기
+        DateTime today = DateTime.Now.Date;
+        DateTime firstDay = new DateTime(year, month, 1);
+        int startWeekday = (int)firstDay.DayOfWeek;
+        int todayIndex = startWeekday + today.Day - 1;
+
+        // 해당 인덱스의 셀 찾기
+        if (todayIndex < gridParent.childCount)
+        {
+            Transform todayCell = gridParent.GetChild(todayIndex);
+            if (todayCell != null && todayCell.gameObject.activeSelf)
+            {
+                currentCircleIndicator = Instantiate(circleIndicatorPrefab, todayCell);
+
+                // 원형 표시기를 셀의 중앙에 위치시키고 크기 조정
+                RectTransform circleRect = currentCircleIndicator.GetComponent<RectTransform>();
+                if (circleRect != null)
+                {
+                    circleRect.anchorMin = Vector2.zero;
+                    circleRect.anchorMax = Vector2.one;
+                    circleRect.offsetMin = Vector2.zero;
+                    circleRect.offsetMax = Vector2.zero;
+                    circleRect.localScale = Vector3.one;
+                }
+            }
+        }
     }
 
     private void UpdateDateLabels(DateTime currentDate)
@@ -137,29 +180,29 @@ public class CalenderManager1 : MonoBehaviour
         switch (type)
         {
             case DayType.PreviousMonth:
-                txt.color = new Color(0, 0, 0, 0.3f);
-                if (bg != null) bg.color = new Color(1, 1, 1, 0.2f);
+                txt.color = new Color(0.392f, 0.365f, 0.494f, 0.6f);
+                if (bg != null) bg.color = new Color(0, 0, 0, 0);
                 break;
 
             case DayType.NextMonth:
-                txt.color = new Color(0, 0, 0, 0.3f);
-                if (bg != null) bg.color = new Color(1, 1, 1, 0.2f);
+                txt.color = new Color(0.392f, 0.365f, 0.494f, 0.6f);
+                if (bg != null) bg.color = new Color(0, 0, 0, 0);
                 break;
 
             case DayType.CurrentMonth:
-                // 텍스트는 진한 검정
-                txt.color = new Color32(30, 30, 30, 255);
+                // 텍스트는 진한 검정s
+                txt.color = new Color32(100, 93, 126, 255);
 
                 if (bg != null)
                 {
                     // 흰색 배경, 투명도 최대
-                    bg.color = new Color32(1, 1, 1, 1);
+                    bg.color = new Color32(0, 0, 0, 0);
                 }
                 break;
 
             case DayType.Today:
-                txt.color = Color.white;
-                if (bg != null) bg.color = new Color(0.6f, 0.2f, 1f, 1f);
+                txt.color = new Color32(100, 93, 126, 255);
+                if (bg != null) bg.color = new Color(1f, 1f, 1f, 0.6f);
                 break;
         }
 
@@ -199,26 +242,30 @@ public class CalenderManager1 : MonoBehaviour
                     StartCoroutine(todoListManager.FetchAndShowTasksForDate(dateStr));
 
                     // 동그란 UI 표시
-                    ShowCircleIndicator(cell.transform);
+                    if (circleIndicatorPrefab != null)
+                    {
+                        // 기존 원형 표시기 제거
+                        if (currentCircleIndicator != null)
+                        {
+                            Destroy(currentCircleIndicator);
+                        }
+
+                        // 새 원형 표시기 생성
+                        currentCircleIndicator = Instantiate(circleIndicatorPrefab, cell.transform);
+
+                        // 원형 표시기 위치 및 크기 설정
+                        RectTransform circleRect = currentCircleIndicator.GetComponent<RectTransform>();
+                        if (circleRect != null)
+                        {
+                            circleRect.anchorMin = Vector2.zero;
+                            circleRect.anchorMax = Vector2.one;
+                            circleRect.offsetMin = Vector2.zero;
+                            circleRect.offsetMax = Vector2.zero;
+                            circleRect.localScale = Vector3.one;
+                        }
+                    }
                 }
             });
-        }
-    }
-
-    private void ShowCircleIndicator(Transform cellTransform)
-    {
-        // 기존 원형 표시기 제거
-        if (currentCircleIndicator != null)
-        {
-            Destroy(currentCircleIndicator);
-        }
-
-        // 새 원형 표시기 생성
-        if (circleIndicatorPrefab != null)
-        {
-            currentCircleIndicator = Instantiate(circleIndicatorPrefab, cellTransform);
-            // 셀의 중앙에 위치시키기
-            currentCircleIndicator.transform.localPosition = Vector3.zero;
         }
     }
 }
