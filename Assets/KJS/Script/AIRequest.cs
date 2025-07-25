@@ -1,14 +1,20 @@
 using UnityEngine;
 using System;
+using System.Collections;
+using UnityEngine.Networking;
 
 public class AIRequester : MonoBehaviour
 {
-    [Header("ÀÎÅÍ¹ú ¼³Á¤")]
+    [Header("ìš”ì²­ ì„¤ì •")]
+    public string requestUrl = "http://localhost:8080/api/ai"; // ìš”ì²­ì„ ë³´ë‚¼ URL
+    public string requestMethod = "POST"; // HTTP ë©”ì„œë“œ (GET, POST, PUT, DELETE)
+    
+    [Header("ì‹œê°„ ì„¤ì •")]
     public int days = 0;
     public int hours = 0;
     public int minutes = 0;
     public int seconds = 10;
-    [Header("¾Û Àç½ÃÀÛ ÈÄ¿¡µµ À¯ÁöÇÏ·Á¸é PlayerPrefs »ç¿ë")]
+    [Header("ì„¸ì…˜ ê°„ì—ë„ ìœ ì§€í•˜ë ¤ë©´ PlayerPrefs ì‚¬ìš©")]
     public bool persistBetweenSessions = false;
 
     private TimeSpan _interval;
@@ -45,8 +51,36 @@ public class AIRequester : MonoBehaviour
 
     void SendAIRequest()
     {
-        Debug.Log($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] AI ¿äÃ» Àü¼Û");
-        // AI ¿äÃ» ·ÎÁ÷
+        Debug.Log($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] AI ìš”ì²­ ì‹œì‘ - URL: {requestUrl}");
+        StartCoroutine(SendRequestCoroutine());
+    }
+    
+    private IEnumerator SendRequestCoroutine()
+    {
+        using (UnityWebRequest request = new UnityWebRequest(requestUrl, requestMethod))
+        {
+            request.downloadHandler = new DownloadHandlerBuffer();
+            
+            // POST ìš”ì²­ì¸ ê²½ìš° ê¸°ë³¸ ë°ì´í„° ì¶”ê°€ (í•„ìš”ì‹œ ìˆ˜ì •)
+            if (requestMethod.ToUpper() == "POST")
+            {
+                string jsonData = "{\"timestamp\":\"" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "\"}";
+                byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
+                request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+                request.SetRequestHeader("Content-Type", "application/json");
+            }
+            
+            yield return request.SendWebRequest();
+            
+            if (request.result == UnityWebRequest.Result.Success)
+            {
+                Debug.Log($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] AI ìš”ì²­ ì„±ê³µ: {request.downloadHandler.text}");
+            }
+            else
+            {
+                Debug.LogError($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] AI ìš”ì²­ ì‹¤íŒ¨: {request.error} (ì‘ë‹µì½”ë“œ: {request.responseCode})");
+            }
+        }
     }
 }
 
