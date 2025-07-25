@@ -170,12 +170,13 @@ public class EmojiController : MonoBehaviour
         // 1) 실제 감정 적용 (비주얼 + FruitInfoUI.currentEmotion 갱신)
         SetEmotion(it.emotionType);
 
-        // 2) JSON 생성 및 (원하면) 서버 전송
+        // 2) JSON 생성 (로컬 저장용)
         CreateFruitJSON(it.emotionType);
-        // → 만약 바로 서버로도 보내고 싶다면 SendToServer(json) 호출을 CreateFruitJSON 안에 추가하세요.
 
         // 3) 원래 스케일로 복원
         it.targetObject.transform.localScale = it.originalScale;
+        
+        Debug.Log($"[EmojiController] 감정 '{it.emotionType}' 설정 완료. 저장하려면 저장 버튼을 눌러주세요.");
     }
 
     private void CreateFruitJSON(string emotion)

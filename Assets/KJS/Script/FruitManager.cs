@@ -324,7 +324,17 @@ public class FruitManager : MonoBehaviour
     }
         public void OnSaveButtonPressed()
     {
-        StartCoroutine(SaveAllSpawnedFruits());
+        // 새로운 전체 저장 방식 사용
+        var fruitSaver = FindObjectOfType<FruitSaver>();
+        if (fruitSaver != null)
+        {
+            fruitSaver.SaveAllFruitsInScene();
+        }
+        else
+        {
+            Debug.LogWarning("[FruitManager] FruitSaver를 찾을 수 없습니다. 기존 방식으로 저장합니다.");
+            StartCoroutine(SaveAllSpawnedFruits());
+        }
     }
 
     private IEnumerator SaveAllSpawnedFruits()
