@@ -125,7 +125,7 @@ public class TodoListManager : MonoBehaviour
     {
         string url = "http://192.168.0.58:8080/api/tasks/show"; // 백엔드 주소에 맞게 수정
         Debug.Log($"🌐 백엔드 요청 시작: {url}");
-        
+
         using (UnityWebRequest www = UnityWebRequest.Get(url))
         {
             yield return www.SendWebRequest();

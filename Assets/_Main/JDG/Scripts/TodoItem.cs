@@ -137,12 +137,28 @@ public class TodoItem : MonoBehaviour,
 
     void HandleSwipeDrag(float deltaX)
     {
-        // 스와이프 중 아이템을 좌우로 이동
-        rt.anchoredPosition = new Vector2(originalPosition.x + deltaX * 0.5f, originalPosition.y);
+        // 스와이프를 더 반응적으로 - 1:1 비율로 변경
+        rt.anchoredPosition = new Vector2(originalPosition.x + deltaX, originalPosition.y);
 
-        // 알파값으로 시각적 피드백
+        // 더 부드러운 알파값 변화
         float swipeProgress = Mathf.Abs(deltaX) / swipeThreshold;
-        cg.alpha = Mathf.Lerp(1f, 0.7f, Mathf.Clamp01(swipeProgress));
+        cg.alpha = Mathf.Lerp(1f, 0.3f, Mathf.Clamp01(swipeProgress));
+
+        // 스와이프 방향에 따른 색상 힌트 (선택사항)
+        var swipeImage = GetComponent<Image>();
+        if (swipeImage != null)
+        {
+            if (deltaX < -50f)
+            {
+                // 왼쪽 스와이프 - 삭제 힌트 (빨간색 틴트)
+                swipeImage.color = Color.Lerp(Color.white, Color.red, swipeProgress * 0.3f);
+            }
+            else if (deltaX > 50f)
+            {
+                // 오른쪽 스와이프 - 완료 힌트 (초록색 틴트)
+                swipeImage.color = Color.Lerp(Color.white, Color.green, swipeProgress * 0.3f);
+            }
+        }
     }
 
     void EndSwipe(Vector2 totalDelta)
@@ -154,14 +170,19 @@ public class TodoItem : MonoBehaviour,
         {
             Debug.Log("왼쪽 스와이프 - 삭제 실행");
             isDeleteAction = true;
-            ExecuteDelete();
+            StartCoroutine(FastSwipeOut(Vector2.left, () => ExecuteDelete()));
         }
         // 오른쪽 스와이프 (완료)
         else if (swipeDistance > swipeThreshold)
         {
             Debug.Log("오른쪽 스와이프 - 완료 실행");
             isDeleteAction = false;
-            ExecuteComplete();
+
+            // 완료는 체크 애니메이션 후 스와이프 아웃
+            if (checkMarkImage != null)
+                StartCoroutine(CheckMarkThenSwipeOut());
+            else
+                StartCoroutine(FastSwipeOut(Vector2.right, () => ExecuteComplete()));
         }
         // 임계값에 못 미치면 원위치로 복귀
         else
@@ -172,56 +193,150 @@ public class TodoItem : MonoBehaviour,
         isHorizontalSwiping = false;
     }
 
+    // 빠른 스와이프 아웃 애니메이션
+    IEnumerator FastSwipeOut(Vector2 direction, System.Action onComplete = null)
+    {
+        cg.blocksRaycasts = false;
+
+        Vector2 startPos = rt.anchoredPosition;
+        Vector2 endPos = startPos + direction * Screen.width; // 화면 너비만큼 이동
+
+        float elapsed = 0f;
+        float fastDuration = 0.15f; // 빠른 애니메이션
+
+        while (elapsed < fastDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / fastDuration;
+
+            // EaseInQuad로 가속감 있게
+            float easeT = t * t;
+
+            rt.anchoredPosition = Vector2.Lerp(startPos, endPos, easeT);
+            cg.alpha = Mathf.Lerp(1f, 0f, easeT);
+
+            yield return null;
+        }
+
+        // 애니메이션 완료 후 백엔드 호출
+        onComplete?.Invoke();
+    }
+
+    // 체크마크 후 스와이프 아웃
+    IEnumerator CheckMarkThenSwipeOut()
+    {
+        // 체크 애니메이션
+        if (checkMarkImage != null)
+        {
+            checkMarkImage.enabled = true;
+            checkMarkImage.color = new Color(0, 1, 0, 0);
+
+            float elapsed = 0;
+            while (elapsed < checkAnimDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / checkAnimDuration);
+                checkMarkImage.color = new Color(0, 1, 0, t);
+                checkMarkImage.transform.localScale = Vector3.Lerp(Vector3.one * 0.5f, Vector3.one * 1.2f, t);
+                yield return null;
+            }
+
+            // 잠깐 대기
+            yield return new WaitForSeconds(0.1f);
+        }
+
+        // 오른쪽으로 빠르게 스와이프 아웃
+        yield return StartCoroutine(FastSwipeOut(Vector2.right, () => ExecuteComplete()));
+    }
+
     IEnumerator ReturnToOriginalPosition()
     {
         Vector2 currentPos = rt.anchoredPosition;
         float elapsed = 0f;
+        float returnDuration = 0.15f; // 복귀도 빠르게
 
-        while (elapsed < animDuration)
+        while (elapsed < returnDuration)
         {
             elapsed += Time.deltaTime;
-            float t = elapsed / animDuration;
+            float t = elapsed / returnDuration;
 
-            rt.anchoredPosition = Vector2.Lerp(currentPos, originalPosition, t);
-            cg.alpha = Mathf.Lerp(cg.alpha, 1f, t);
+            // EaseOutBack으로 살짝 튕기는 효과
+            float easeT = 1f - Mathf.Pow(1f - t, 3f);
+
+            rt.anchoredPosition = Vector2.Lerp(currentPos, originalPosition, easeT);
+            cg.alpha = Mathf.Lerp(cg.alpha, 1f, easeT);
+
+            // 색상 복원
+            var returnImage = GetComponent<Image>();
+            if (returnImage != null)
+                returnImage.color = Color.Lerp(returnImage.color, Color.white, easeT);
 
             yield return null;
         }
 
         rt.anchoredPosition = originalPosition;
         cg.alpha = 1f;
+        var finalImage = GetComponent<Image>();
+        if (finalImage != null)
+            finalImage.color = Color.white;
     }
 
     void ExecuteDelete()
     {
         Debug.Log($"삭제 실행: id={data.id}, todo={data.todo}");
 
-        // 삭제용 JSON을 data 전체로 생성
         TodoListData deleteList = new TodoListData();
         deleteList.tasks = new List<TodoItemData> { data };
         string json = JsonUtility.ToJson(deleteList);
-        Debug.Log("삭제용 JSON: " + json);
 
-        cg.blocksRaycasts = false;
-        StartCoroutine(DeleteThenAnimate(json));
+        StartCoroutine(SendDeleteRequest(json));
     }
 
     void ExecuteComplete()
     {
         Debug.Log("완료 실행!");
 
-        // 체크 애니메이션 시작
-        if (checkMarkImage != null)
-            StartCoroutine(CheckMarkAnimation());
-
-        cg.blocksRaycasts = false;
-
-        // data 전체를 JSON으로 만들어 전송
         TodoListData completeList = new TodoListData();
         completeList.tasks = new List<TodoItemData> { data };
         string json = JsonUtility.ToJson(completeList);
-        Debug.Log("완료용 JSON: " + json);
-        StartCoroutine(CompleteThenAnimate(json));
+
+        StartCoroutine(SendCompleteRequest(json));
+    }
+
+    // 백엔드 요청들 (애니메이션 후 처리)
+    IEnumerator SendDeleteRequest(string json)
+    {
+        using var req = new UnityWebRequest($"{backendUrl}/bulk", "DELETE");
+        byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
+        req.uploadHandler = new UploadHandlerRaw(body) { contentType = "application/json" };
+        req.downloadHandler = new DownloadHandlerBuffer();
+        yield return req.SendWebRequest();
+
+        if (req.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError("삭제 요청 실패: " + req.error);
+            // 실패해도 이미 UI에서 사라졌으므로 로그만 출력
+        }
+
+        // 성공/실패 관계없이 오브젝트 삭제
+        Destroy(gameObject);
+    }
+
+    IEnumerator SendCompleteRequest(string json)
+    {
+        using var req = new UnityWebRequest($"{backendUrl}/bulk/accept", "POST");
+        byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
+        req.uploadHandler = new UploadHandlerRaw(body) { contentType = "application/json" };
+        req.downloadHandler = new DownloadHandlerBuffer();
+        yield return req.SendWebRequest();
+
+        if (req.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError("완료 요청 실패: " + req.error);
+        }
+
+        // 성공/실패 관계없이 오브젝트 삭제
+        Destroy(gameObject);
     }
 
     #endregion
