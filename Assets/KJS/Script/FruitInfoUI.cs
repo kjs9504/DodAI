@@ -35,6 +35,15 @@ public class FruitInfoUI : MonoBehaviour, IPointerClickHandler
         Debug.Log($"[FruitInfoUI] currentEmotion 갱신: {currentEmotion}");
     }
 
+    /// <summary>
+    /// 이 과일의 감정을 설정 (저장은 별도 버튼으로)
+    /// </summary>
+    public void SetEmotionOnly(string emotion)
+    {
+        SetEmotion(emotion);
+        Debug.Log($"[FruitInfoUI] 감정 '{emotion}' 설정 완료. 저장하려면 저장 버튼을 눌러주세요.");
+    }
+
     private void Awake()
     {
         if (infoPanel != null)

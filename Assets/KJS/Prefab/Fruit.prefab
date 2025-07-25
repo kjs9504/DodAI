@@ -1635,7 +1635,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65b126d351370ef40bd15b5901a4d371, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  serverBaseUrl: http://localhost:8080
+  serverBaseUrl: http://192.168.0.58:8080
   apiEndpoint: /api/fruit
   emojiController: {fileID: 5406143758268966537}
   fruitInfoUI: {fileID: 6662942227410773584}

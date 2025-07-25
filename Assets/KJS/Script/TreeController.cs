@@ -73,9 +73,8 @@ public class TreeController : MonoBehaviour
             else
             {
                 Debug.LogError($"❌ 백엔드 요청 실패: {www.error} (응답코드: {www.responseCode})");
-                // 백엔드 요청 실패 시 더미 데이터 사용
-                Debug.Log("더미 데이터로 폴백합니다.");
-                GenerateButtonsFromDummyData();
+                // 백엔드 요청 실패 시 빈 상태로 유지
+                Debug.Log("백엔드 요청 실패로 데이터를 가져올 수 없습니다.");
             }
         }
     }
@@ -117,17 +116,18 @@ public class TreeController : MonoBehaviour
             {
                 Debug.Log($"총 {treeDataList.Count}개의 트리 데이터를 받았습니다.");
                 GenerateButtonsFromBackendData();
+                
+                // 가장 최근 날짜의 데이터를 자동으로 선택
+                SelectMostRecentData();
             }
             else
             {
-                Debug.LogWarning("백엔드에서 받은 데이터가 없습니다. 더미 데이터를 사용합니다.");
-                GenerateButtonsFromDummyData();
+                Debug.LogWarning("백엔드에서 받은 데이터가 없습니다.");
             }
         }
         catch (System.Exception e)
         {
             Debug.LogError($"백엔드 데이터 처리 오류: {e.Message}");
-            GenerateButtonsFromDummyData();
         }
     }
     
@@ -245,9 +245,9 @@ public class TreeController : MonoBehaviour
                     generatedGoodPointsTexts.Add(null);
                 }
                 
-                // 버튼 클릭 이벤트 설정
+                // 버튼 클릭 이벤트 설정 (이전 JSON 데이터의 감정 사용)
                 int index = i;
-                button.onClick.AddListener(() => OnBackendDataButtonClick(index));
+                button.onClick.AddListener(() => OnBackendDataButtonClickWithPreviousEmotion(index));
                 
                 // 버튼 위치 설정
                 RectTransform rectTransform = buttonObj.GetComponent<RectTransform>();
@@ -263,7 +263,63 @@ public class TreeController : MonoBehaviour
         Debug.Log($"총 {generatedButtons.Count}개의 버튼이 생성되었습니다.");
     }
     
-    // 백엔드 데이터 버튼 클릭 시 호출
+    // 백엔드 데이터 버튼 클릭 시 호출 (이전 JSON 데이터의 감정 사용)
+    private void OnBackendDataButtonClickWithPreviousEmotion(int index)
+    {
+        Debug.Log($"백엔드 데이터 버튼 {index} 클릭됨 (이전 감정 사용)");
+        
+        if (index >= 0 && index < treeDataList.Count)
+        {
+            // 현재 버튼의 데이터는 유지하되, 감정만 이전 JSON에서 가져오기
+            TreeData currentData = treeDataList[index];
+            
+            // 이전 JSON 데이터의 감정 찾기
+            string previousEmotion = GetPreviousEmotion(index);
+            
+            // 임시 TreeData 생성 (현재 데이터 + 이전 감정)
+            TreeData modifiedData = new TreeData
+            {
+                date = currentData.date,
+                emotion = previousEmotion,
+                goodPoints = currentData.goodPoints,
+                solution = currentData.solution
+            };
+            
+            currentTreeData = modifiedData;
+            UpdateUI();
+            OnEmotionButtonClick();
+            Debug.Log($"백엔드 데이터 버튼 {index} 처리 완료 (감정: {previousEmotion})");
+        }
+        else
+        {
+            Debug.LogError($"잘못된 버튼 인덱스: {index}");
+        }
+    }
+    
+    // 이전 JSON 데이터의 감정을 가져오는 메서드
+    private string GetPreviousEmotion(int currentIndex)
+    {
+        if (currentIndex <= 0)
+        {
+            // 첫 번째 버튼인 경우 마지막 JSON의 감정 사용
+            if (treeDataList.Count > 1)
+            {
+                return treeDataList[treeDataList.Count - 1].emotion;
+            }
+            else
+            {
+                // 데이터가 하나뿐인 경우 현재 감정 사용
+                return treeDataList[0].emotion;
+            }
+        }
+        else
+        {
+            // 이전 JSON의 감정 사용
+            return treeDataList[currentIndex - 1].emotion;
+        }
+    }
+    
+    // 백엔드 데이터 버튼 클릭 시 호출 (기존 방식 - 필요시 사용)
     private void OnBackendDataButtonClick(int index)
     {
         Debug.Log($"백엔드 데이터 버튼 {index} 클릭됨");
@@ -295,15 +351,57 @@ public class TreeController : MonoBehaviour
         StartCoroutine(FetchTreeDataFromBackend());
     }
     
+    /// <summary>
+    /// 가장 최근 날짜의 데이터를 자동으로 선택
+    /// </summary>
+    private void SelectMostRecentData()
+    {
+        if (treeDataList == null || treeDataList.Count == 0)
+        {
+            Debug.LogWarning("선택할 데이터가 없습니다.");
+            return;
+        }
+        
+        // 가장 최근 날짜 찾기
+        TreeData mostRecentData = null;
+        System.DateTime mostRecentDate = System.DateTime.MinValue;
+        
+        foreach (var treeData in treeDataList)
+        {
+            if (System.DateTime.TryParse(treeData.date, out System.DateTime currentDate))
+            {
+                if (currentDate > mostRecentDate)
+                {
+                    mostRecentDate = currentDate;
+                    mostRecentData = treeData;
+                }
+            }
+        }
+        
+        if (mostRecentData != null)
+        {
+            // 가장 최근 데이터를 현재 데이터로 설정
+            currentTreeData = mostRecentData;
+            UpdateUI();
+            OnEmotionButtonClick();
+            
+            Debug.Log($"가장 최근 날짜의 데이터가 자동 선택되었습니다: {mostRecentData.date} - {mostRecentData.emotion}");
+        }
+        else
+        {
+            Debug.LogWarning("유효한 날짜 데이터를 찾을 수 없습니다.");
+        }
+    }
+    
     void InitializeEmotionObjects()
     {
         emotionObjects = new Dictionary<string, GameObject>
         {
-            {"FUN", funObject},
-            {"ANGRY", angryObject},
-            {"SAD", sadObject},
-            {"FRUSTRATION", frustrationObject},
-            {"ACHIEVEMENT", achievementObject}
+            {"즐거움", funObject},
+            {"분노", angryObject},
+            {"슬픔", sadObject},
+            {"허무감", frustrationObject},
+            {"달성감", achievementObject}
         };
         
         // 모든 오브젝트를 초기에 비활성화
@@ -312,159 +410,6 @@ public class TreeController : MonoBehaviour
             if (obj != null)
                 obj.SetActive(false);
         }
-    }
-    
-
-    
-    // 더미 데이터 개수에 따라 버튼 생성
-    void GenerateButtonsFromDummyData()
-    {
-        Debug.Log($"GenerateButtonsFromDummyData() 호출됨 - 더미 데이터 개수: {dummyJsonData.Length}");
-        
-        if (buttonPrefab == null)
-        {
-            Debug.LogError("버튼 프리팹이 할당되지 않았습니다!");
-            return;
-        }
-        
-        if (buttonParent == null)
-        {
-            Debug.LogError("버튼 부모가 할당되지 않았습니다!");
-            return;
-        }
-        
-        Debug.Log($"버튼 프리팹 이름: {buttonPrefab.name}");
-        Debug.Log($"버튼 부모 이름: {buttonParent.name}");
-        Debug.Log("버튼 생성 시작...");
-        
-        // 기존 생성된 버튼들 제거
-        ClearGeneratedButtons();
-        
-        // 더미 데이터 개수만큼 버튼 생성
-        for (int i = 0; i < dummyJsonData.Length; i++)
-        {
-            Debug.Log($"버튼 {i} 생성 중...");
-            
-            GameObject buttonObj = Instantiate(buttonPrefab, buttonParent);
-            Debug.Log($"버튼 {i} 인스턴스 생성됨: {buttonObj.name}");
-            
-            Button button = buttonObj.GetComponent<Button>();
-            
-            if (button != null)
-            {
-                // 버튼 텍스트 설정 (감정 이름으로 설정)
-                TextMeshProUGUI buttonText = buttonObj.GetComponentInChildren<TextMeshProUGUI>();
-                if (buttonText != null)
-                {
-                    TreeData tempData = JsonUtility.FromJson<TreeData>(dummyJsonData[i]);
-                    buttonText.text = tempData.emotion; // 버튼에는 감정 이름 표시
-                    Debug.Log($"버튼 {i} 텍스트 설정: {tempData.emotion}");
-                }
-                else
-                {
-                    Debug.LogError($"버튼 {i}에 TextMeshProUGUI 컴포넌트를 찾을 수 없습니다!");
-                }
-                
-                // GoodPoint 텍스트 찾기 및 저장 (Date -> GoodPoint 구조)
-                Transform dateTransform = buttonObj.transform.Find("Date");
-                if (dateTransform != null)
-                {
-                    Debug.Log($"버튼 {i}에서 Date 오브젝트 찾음: {dateTransform.name}");
-                    
-                    // Date의 모든 자식 오브젝트 확인
-                    Debug.Log($"Date의 자식 오브젝트들:");
-                    for (int j = 0; j < dateTransform.childCount; j++)
-                    {
-                        Transform child = dateTransform.GetChild(j);
-                        Debug.Log($"  - {child.name}");
-                    }
-                    
-                                    // Date 텍스트 바로 설정
-                Debug.Log($"Date 오브젝트 컴포넌트 확인:");
-                Component[] dateComponents = dateTransform.GetComponents<Component>();
-                foreach (Component comp in dateComponents)
-                {
-                    Debug.Log($"  - {comp.GetType().Name}");
-                }
-                
-                TextMeshProUGUI dateText = dateTransform.GetComponent<TextMeshProUGUI>();
-                if (dateText != null)
-                {
-                    TreeData tempData = JsonUtility.FromJson<TreeData>(dummyJsonData[i]);
-                    dateText.text = tempData.date;
-                    Debug.Log($"버튼 {i}의 Date 텍스트 설정 완료: {tempData.date}");
-                }
-                else
-                {
-                    Debug.LogError($"버튼 {i}의 Date에 TextMeshProUGUI 컴포넌트가 없습니다!");
-                    // Date의 자식에서 TextMeshProUGUI 찾기 시도
-                    TextMeshProUGUI childDateText = dateTransform.GetComponentInChildren<TextMeshProUGUI>();
-                    if (childDateText != null)
-                    {
-                        TreeData tempData = JsonUtility.FromJson<TreeData>(dummyJsonData[i]);
-                        childDateText.text = tempData.date;
-                        Debug.Log($"버튼 {i}의 Date 자식에서 TextMeshProUGUI 찾음, 텍스트 설정 완료: {tempData.date}");
-                    }
-                    else
-                    {
-                        Debug.LogError($"버튼 {i}의 Date와 그 자식들에서 TextMeshProUGUI를 찾을 수 없습니다!");
-                    }
-                }
-                
-                // GoodPoint 찾기 및 바로 텍스트 설정
-                Transform goodPointTransform = dateTransform.Find("GoodPoint");
-                if (goodPointTransform != null)
-                {
-                    Debug.Log($"버튼 {i}에서 GoodPoint 오브젝트 찾음: {goodPointTransform.name}");
-                    TextMeshProUGUI goodPointText = goodPointTransform.GetComponent<TextMeshProUGUI>();
-                    if (goodPointText != null)
-                    {
-                        // 바로 해당 JSON의 goodPoints 텍스트 설정
-                        TreeData tempData = JsonUtility.FromJson<TreeData>(dummyJsonData[i]);
-                        goodPointText.text = tempData.goodPoints;
-                        generatedGoodPointsTexts.Add(goodPointText);
-                        Debug.Log($"버튼 {i}의 GoodPoint 텍스트 설정 완료: {tempData.goodPoints.Substring(0, Mathf.Min(30, tempData.goodPoints.Length))}...");
-                    }
-                    else
-                    {
-                        Debug.LogError($"버튼 {i}의 GoodPoint에 TextMeshProUGUI 컴포넌트가 없습니다!");
-                        generatedGoodPointsTexts.Add(null);
-                    }
-                }
-                else
-                {
-                    Debug.LogError($"버튼 {i}의 Date에서 GoodPoint를 찾을 수 없습니다!");
-                    generatedGoodPointsTexts.Add(null);
-                }
-                }
-                else
-                {
-                    Debug.LogError($"버튼 {i}에서 Date 오브젝트를 찾을 수 없습니다!");
-                    generatedGoodPointsTexts.Add(null);
-                }
-                
-                // 버튼 클릭 이벤트 설정
-                int index = i; // 클로저를 위한 변수
-                button.onClick.AddListener(() => OnDummyDataButtonClick(index));
-                
-                // 버튼 위치 설정
-                RectTransform rectTransform = buttonObj.GetComponent<RectTransform>();
-                if (rectTransform != null)
-                {
-                    rectTransform.anchoredPosition = new Vector2(0, -i * (rectTransform.rect.height + buttonSpacing));
-                    Debug.Log($"버튼 {i} 위치 설정: {rectTransform.anchoredPosition}");
-                }
-                
-                generatedButtons.Add(button);
-                Debug.Log($"버튼 {i} 생성 완료");
-            }
-            else
-            {
-                Debug.LogError($"버튼 {i}에 Button 컴포넌트를 찾을 수 없습니다!");
-            }
-        }
-        
-        Debug.Log($"총 {generatedButtons.Count}개의 버튼이 생성되었습니다.");
     }
     
     // 생성된 버튼들 제거
@@ -479,25 +424,6 @@ public class TreeController : MonoBehaviour
         }
         generatedButtons.Clear();
         generatedGoodPointsTexts.Clear();
-    }
-    
-    // 더미 데이터 버튼 클릭 시 호출
-    void OnDummyDataButtonClick(int index)
-    {
-        Debug.Log($"버튼 {index} 클릭됨");
-        
-        if (index >= 0 && index < dummyJsonData.Length)
-        {
-            currentDummyIndex = index;
-            SetTreeData(dummyJsonData[index]);
-            // UpdateGoodPointText(); // GoodPoint는 버튼 생성 시 이미 설정됨
-            OnEmotionButtonClick();
-            Debug.Log($"버튼 {index} 데이터 처리 완료");
-        }
-        else
-        {
-            Debug.LogError($"잘못된 버튼 인덱스: {index}");
-        }
     }
     
     // JSON 데이터를 받아서 처리하는 메서드
@@ -540,23 +466,6 @@ public class TreeController : MonoBehaviour
             Debug.LogError("currentTreeData가 null입니다!");
             return;
         }
-        
-        if (currentDummyIndex < 0 || currentDummyIndex >= generatedGoodPointsTexts.Count)
-        {
-            Debug.LogError($"잘못된 인덱스: {currentDummyIndex}, 리스트 크기: {generatedGoodPointsTexts.Count}");
-            return;
-        }
-            
-        TextMeshProUGUI goodPointText = generatedGoodPointsTexts[currentDummyIndex];
-        if (goodPointText != null)
-        {
-            goodPointText.text = currentTreeData.goodPoints;
-            Debug.Log($"GoodPoint 텍스트 업데이트: {currentTreeData.goodPoints.Substring(0, Mathf.Min(30, currentTreeData.goodPoints.Length))}...");
-        }
-        else
-        {
-            Debug.LogError($"버튼 {currentDummyIndex}의 GoodPoint 텍스트가 null입니다!");
-        }
     }
     
 
@@ -570,7 +479,7 @@ public class TreeController : MonoBehaviour
         DeactivateAllEmotionObjects();
         
         // 현재 감정에 해당하는 오브젝트 활성화
-        string emotion = currentTreeData.emotion.ToUpper();
+        string emotion = currentTreeData.emotion; // ToUpper() 제거하여 한글 감정명 그대로 사용
         if (emotionObjects.ContainsKey(emotion))
         {
             GameObject targetObject = emotionObjects[emotion];
@@ -597,92 +506,6 @@ public class TreeController : MonoBehaviour
             if (obj != null)
                 obj.SetActive(false);
         }
-    }
-    
-    // 더미 JSON 데이터들
-    [Header("더미 데이터")]
-    [SerializeField] private string[] dummyJsonData = {
-        @"{
-            ""date"": ""2024-01-15"",
-            ""emotion"": ""FUN"",
-            ""goodPoints"": ""오늘 정말 재미있었어요! 새로운 것을 배우는 게 즐거웠고, 친구들과 함께하는 시간이 행복했어요. 웃음이 끊이지 않는 하루였습니다."",
-            ""solution"": ""이런 즐거운 기분을 유지하기 위해 매일 작은 목표를 세우고, 성취감을 느낄 수 있는 활동을 해보세요. 긍정적인 마인드를 유지하는 것이 중요합니다.""
-        }",
-        @"{
-            ""date"": ""2024-01-16"",
-            ""emotion"": ""ANGRY"",
-            ""goodPoints"": ""화가 나는 상황에서도 침착하게 대응하려고 노력했어요. 감정을 억누르지 않고 적절히 표현하려고 했습니다."",
-            ""solution"": ""화가 날 때는 심호흡을 10번 하고, 잠시 자리를 떠나서 마음을 진정시켜보세요. 감정 일기를 쓰는 것도 도움이 됩니다.""
-        }",
-        @"{
-            ""date"": ""2024-01-17"",
-            ""emotion"": ""SAD"",
-            ""goodPoints"": ""슬픈 감정을 인정하고 받아들이려고 노력했어요. 감정을 숨기지 않고 표현하려고 했습니다."",
-            ""solution"": ""슬픈 감정이 들 때는 좋아하는 음악을 듣거나, 신뢰할 수 있는 사람과 대화해보세요. 충분한 휴식과 자기 돌봄이 필요합니다.""
-        }",
-        @"{
-            ""date"": ""2024-01-18"",
-            ""emotion"": ""FRUSTRATION"",
-            ""goodPoints"": ""좌절감이 들었지만 포기하지 않고 계속 시도하려고 노력했어요. 문제를 해결하려는 의지가 있었습니다."",
-            ""solution"": ""좌절감이 들 때는 문제를 작은 단계로 나누어 하나씩 해결해보세요. 다른 관점에서 문제를 바라보는 것도 도움이 됩니다.""
-        }",
-        @"{
-            ""date"": ""2024-01-19"",
-            ""emotion"": ""ACHIEVEMENT"",
-            ""goodPoints"": ""목표를 달성했을 때의 성취감이 정말 컸어요! 노력한 만큼 결과가 나와서 뿌듯했습니다."",
-            ""solution"": ""성취감을 느낄 때는 자신을 칭찬하고, 다음 목표를 세워보세요. 작은 성공도 축하하고 기록하는 습관을 기르세요.""
-        }"
-    };
-    
-    [SerializeField] private int currentDummyIndex = 0;
-    
-    // 테스트용 메서드 (개발 중에 사용)
-    [ContextMenu("테스트 데이터로 실행")]
-    public void TestWithSampleData()
-    {
-        if (dummyJsonData.Length > 0)
-        {
-            SetTreeData(dummyJsonData[currentDummyIndex]);
-            OnEmotionButtonClick();
-        }
-    }
-    
-    // 다음 더미 데이터로 테스트
-    [ContextMenu("다음 더미 데이터로 테스트")]
-    public void TestWithNextDummyData()
-    {
-        currentDummyIndex = (currentDummyIndex + 1) % dummyJsonData.Length;
-        TestWithSampleData();
-    }
-    
-    // 특정 감정의 더미 데이터로 테스트
-    public void TestWithSpecificEmotion(string emotion)
-    {
-        for (int i = 0; i < dummyJsonData.Length; i++)
-        {
-            TreeData tempData = JsonUtility.FromJson<TreeData>(dummyJsonData[i]);
-            if (tempData.emotion.ToUpper() == emotion.ToUpper())
-            {
-                currentDummyIndex = i;
-                TestWithSampleData();
-                return;
-            }
-        }
-        Debug.LogWarning($"감정 '{emotion}'에 해당하는 더미 데이터를 찾을 수 없습니다.");
-    }
-    
-    // 버튼 재생성 (더미 데이터가 변경되었을 때)
-    [ContextMenu("버튼 재생성")]
-    public void RegenerateButtons()
-    {
-        GenerateButtonsFromDummyData();
-    }
-    
-    // 외부에서 JSON 데이터 배열을 설정하고 버튼 생성
-    public void SetDummyDataAndGenerateButtons(string[] newDummyData)
-    {
-        dummyJsonData = newDummyData;
-        GenerateButtonsFromDummyData();
     }
     
     // 현재 활성화된 감정 오브젝트 확인
