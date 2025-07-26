@@ -5,21 +5,6 @@ using UnityEngine.UI;
 using TMPro;
 using UnityEngine.Networking;
 
-[System.Serializable]
-public class TreeData
-{
-    public string date;
-    public string emotion;
-    public string goodPoints;
-    public string solution;
-}
-
-[System.Serializable]
-public class TreeDataList
-{
-    public List<TreeData> trees;
-}
-
 public class TreeController : MonoBehaviour
 {
     [Header("백엔드 설정")]
@@ -45,6 +30,7 @@ public class TreeController : MonoBehaviour
     private List<Button> generatedButtons = new List<Button>();
     private List<TextMeshProUGUI> generatedGoodPointsTexts = new List<TextMeshProUGUI>();
     private List<TreeData> treeDataList = new List<TreeData>();
+    private WeekData currentWeekData;
     
     void Start()
     {
@@ -84,12 +70,11 @@ public class TreeController : MonoBehaviour
     {
         try
         {
-            // 백엔드에서 받은 JSON을 TreeData 리스트로 변환
-            treeDataList.Clear();
-            
-            // JSON 배열 형태로 받은 경우
+            // 먼저 JSON이 배열 형태인지 확인
             if (json.Trim().StartsWith("["))
             {
+                Debug.Log("JSON 배열 형태로 받음 - 기존 구조로 파싱");
+                
                 // JSON 배열을 개별 객체로 분리하여 처리
                 string[] jsonArray = ParseJsonArray(json);
                 foreach (string itemJson in jsonArray)
@@ -101,28 +86,66 @@ public class TreeController : MonoBehaviour
                         Debug.Log($"트리 데이터 추가: {treeData.emotion} - {treeData.date}");
                     }
                 }
-            }
-            else
-            {
-                // 단일 객체인 경우
-                TreeData treeData = JsonUtility.FromJson<TreeData>(json);
-                if (treeData != null)
+                
+                if (treeDataList.Count > 0)
                 {
-                    treeDataList.Add(treeData);
+                    Debug.Log($"기존 구조로 파싱 성공: {treeDataList.Count}개 trees");
+                    GenerateButtonsFromBackendData();
+                    SelectMostRecentData();
+                }
+                else
+                {
+                    Debug.LogError("JSON 배열 파싱 실패");
                 }
             }
-            
-            if (treeDataList.Count > 0)
-            {
-                Debug.Log($"총 {treeDataList.Count}개의 트리 데이터를 받았습니다.");
-                GenerateButtonsFromBackendData();
-                
-                // 가장 최근 날짜의 데이터를 자동으로 선택
-                SelectMostRecentData();
-            }
             else
             {
-                Debug.LogWarning("백엔드에서 받은 데이터가 없습니다.");
+                // 객체 형태인 경우 새로운 WeekData 구조로 파싱 시도
+                Debug.Log("JSON 객체 형태로 받음 - 새로운 WeekData 구조로 파싱 시도");
+                currentWeekData = JsonUtility.FromJson<WeekData>(json);
+                
+                if (currentWeekData != null && currentWeekData.trees != null)
+                {
+                    Debug.Log($"새로운 WeekData 구조로 파싱 성공:");
+                    Debug.Log($"주간 시작: {currentWeekData.weekStartDate}");
+                    Debug.Log($"주간 종료: {currentWeekData.weekEndDate}");
+                    Debug.Log($"Tasks 개수: {currentWeekData.tasks?.Count ?? 0}");
+                    Debug.Log($"Fruits 개수: {currentWeekData.fruits?.Count ?? 0}");
+                    Debug.Log($"Trees 개수: {currentWeekData.trees.Count}");
+                    
+                    // Trees 데이터 처리
+                    treeDataList.Clear();
+                    treeDataList.AddRange(currentWeekData.trees);
+                    Debug.Log($"총 {treeDataList.Count}개의 트리 데이터를 받았습니다.");
+                    
+                    foreach (var treeData in treeDataList)
+                    {
+                        Debug.Log($"트리 데이터: {treeData.date} - {treeData.emotion} - {treeData.goodPoints}");
+                    }
+                    
+                    GenerateButtonsFromBackendData();
+                    
+                    // 가장 최근 날짜의 데이터를 자동으로 선택
+                    SelectMostRecentData();
+                }
+                else
+                {
+                    // WeekData 파싱 실패 시 단일 TreeData 객체로 시도
+                    Debug.LogWarning("WeekData 구조 파싱 실패, 단일 TreeData 객체로 시도");
+                    TreeData treeData = JsonUtility.FromJson<TreeData>(json);
+                    if (treeData != null)
+                    {
+                        treeDataList.Clear();
+                        treeDataList.Add(treeData);
+                        Debug.Log($"단일 TreeData 객체 파싱 성공");
+                        GenerateButtonsFromBackendData();
+                        SelectMostRecentData();
+                    }
+                    else
+                    {
+                        Debug.LogError("모든 JSON 파싱 시도 실패");
+                    }
+                }
             }
         }
         catch (System.Exception e)
@@ -131,7 +154,7 @@ public class TreeController : MonoBehaviour
         }
     }
     
-    // JSON 배열을 개별 문자열로 분리
+    // JSON 배열을 개별 문자열로 분리 (기존 구조용)
     private string[] ParseJsonArray(string jsonArray)
     {
         List<string> items = new List<string>();
@@ -245,9 +268,9 @@ public class TreeController : MonoBehaviour
                     generatedGoodPointsTexts.Add(null);
                 }
                 
-                // 버튼 클릭 이벤트 설정 (이전 JSON 데이터의 감정 사용)
+                // 버튼 클릭 이벤트 설정
                 int index = i;
-                button.onClick.AddListener(() => OnBackendDataButtonClickWithPreviousEmotion(index));
+                button.onClick.AddListener(() => OnBackendDataButtonClick(index));
                 
                 // 버튼 위치 설정
                 RectTransform rectTransform = buttonObj.GetComponent<RectTransform>();
@@ -263,63 +286,7 @@ public class TreeController : MonoBehaviour
         Debug.Log($"총 {generatedButtons.Count}개의 버튼이 생성되었습니다.");
     }
     
-    // 백엔드 데이터 버튼 클릭 시 호출 (이전 JSON 데이터의 감정 사용)
-    private void OnBackendDataButtonClickWithPreviousEmotion(int index)
-    {
-        Debug.Log($"백엔드 데이터 버튼 {index} 클릭됨 (이전 감정 사용)");
-        
-        if (index >= 0 && index < treeDataList.Count)
-        {
-            // 현재 버튼의 데이터는 유지하되, 감정만 이전 JSON에서 가져오기
-            TreeData currentData = treeDataList[index];
-            
-            // 이전 JSON 데이터의 감정 찾기
-            string previousEmotion = GetPreviousEmotion(index);
-            
-            // 임시 TreeData 생성 (현재 데이터 + 이전 감정)
-            TreeData modifiedData = new TreeData
-            {
-                date = currentData.date,
-                emotion = previousEmotion,
-                goodPoints = currentData.goodPoints,
-                solution = currentData.solution
-            };
-            
-            currentTreeData = modifiedData;
-            UpdateUI();
-            OnEmotionButtonClick();
-            Debug.Log($"백엔드 데이터 버튼 {index} 처리 완료 (감정: {previousEmotion})");
-        }
-        else
-        {
-            Debug.LogError($"잘못된 버튼 인덱스: {index}");
-        }
-    }
-    
-    // 이전 JSON 데이터의 감정을 가져오는 메서드
-    private string GetPreviousEmotion(int currentIndex)
-    {
-        if (currentIndex <= 0)
-        {
-            // 첫 번째 버튼인 경우 마지막 JSON의 감정 사용
-            if (treeDataList.Count > 1)
-            {
-                return treeDataList[treeDataList.Count - 1].emotion;
-            }
-            else
-            {
-                // 데이터가 하나뿐인 경우 현재 감정 사용
-                return treeDataList[0].emotion;
-            }
-        }
-        else
-        {
-            // 이전 JSON의 감정 사용
-            return treeDataList[currentIndex - 1].emotion;
-        }
-    }
-    
-    // 백엔드 데이터 버튼 클릭 시 호출 (기존 방식 - 필요시 사용)
+    // 백엔드 데이터 버튼 클릭 시 호출
     private void OnBackendDataButtonClick(int index)
     {
         Debug.Log($"백엔드 데이터 버튼 {index} 클릭됨");
@@ -426,7 +393,7 @@ public class TreeController : MonoBehaviour
         generatedGoodPointsTexts.Clear();
     }
     
-    // JSON 데이터를 받아서 처리하는 메서드
+    // JSON 데이터를 받아서 처리하는 메서드 (기존 호환성용)
     public void SetTreeData(string jsonData)
     {
         try
@@ -468,8 +435,6 @@ public class TreeController : MonoBehaviour
         }
     }
     
-
-    
     // 버튼 클릭 시 호출되는 메서드
     public void OnEmotionButtonClick()
     {
@@ -479,7 +444,7 @@ public class TreeController : MonoBehaviour
         DeactivateAllEmotionObjects();
         
         // 현재 감정에 해당하는 오브젝트 활성화
-        string emotion = currentTreeData.emotion; // ToUpper() 제거하여 한글 감정명 그대로 사용
+        string emotion = currentTreeData.emotion;
         if (emotionObjects.ContainsKey(emotion))
         {
             GameObject targetObject = emotionObjects[emotion];

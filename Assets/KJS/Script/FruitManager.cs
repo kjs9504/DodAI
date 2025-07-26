@@ -4,47 +4,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 
-// JSON ↔ C# 매핑용
-[Serializable]
-public class Position
-{
-    public float x;
-    public float y;
-    public float z;
-}
-
-[Serializable]
-public class AcceptedTaskData
-{
-    public long id;
-    public string todo, date, time, acceptedAt;
-    public long? userId;
-}
-[Serializable]
-public class AcceptedListData
-{
-    // 백엔드에서 { "tasks":[ … ] } 형태로 내려온다고 가정
-    public List<AcceptedTaskData> tasks;
-}
-
-[Serializable]
-public class FruitData
-{
-    public long id;
-    public long acceptedTaskId;
-    public float posX, posY, posZ;
-    public string extraData;
-    public string createdAt;
-    public string emotion; // ← 추가
-    public Position position; // ← 추가 (백엔드에서 position json이 올 경우)
-}
-[Serializable]
-public class FruitListData
-{
-    // 백엔드에서 { "fruits":[ … ] } 형태로 내려온다고 가정
-    public List<FruitData> fruits;
-}
-
 public class FruitManager : MonoBehaviour
 {
     [Header("수락된 할 일 리스트 URL")]
@@ -57,13 +16,14 @@ public class FruitManager : MonoBehaviour
     [Header("고정 스폰 위치 (Transform)")]
     public Transform spawnPoint;
     [Header("랜덤 스폰 범위 (±값, 예: 2,1,2)")]
-    public Vector3 spawnRange = new Vector3(2, 1, 2); // Inspector에서 조절
+    public Vector3 spawnRange = new Vector3(2, 1, 2);
     [Header("한 층에 들어갈 과일 개수")]
-    public int fruitsPerLayer = 5; // Inspector에서 조절
+    public int fruitsPerLayer = 5;
     [Header("과일 높이(쌓임 간격)")]
-    public float fruitHeight = 1.0f; // Inspector에서 조절
+    public float fruitHeight = 1.0f;
 
     private List<FruitData> spawnedFruits = new List<FruitData>();
+    private WeekData currentWeekData;
 
     void Start()
     {
@@ -71,7 +31,6 @@ public class FruitManager : MonoBehaviour
         Debug.Log($"[FruitManager] fruitPrefab: {(fruitPrefab != null ? "설정됨" : "NULL!")}");
         Debug.Log($"[FruitManager] spawnPoint: {(spawnPoint != null ? "설정됨" : "NULL!")}");
         Debug.Log($"[FruitManager] acceptsUrl: {acceptsUrl}");
-        Debug.Log($"[FruitManager] fruitUrl: {fruitUrl}");
         
         StartCoroutine(InitFruits());
     }
@@ -80,6 +39,7 @@ public class FruitManager : MonoBehaviour
     {
         Debug.Log("[FruitManager] InitFruits() 시작");
         
+        // 기존 엔드포인트 사용하되 새로운 JSON 구조로 파싱
         using (var www = UnityWebRequest.Get(acceptsUrl))
         {
             Debug.Log($"[FruitManager] AcceptedTasks GET 요청: {acceptsUrl}");
@@ -95,234 +55,227 @@ public class FruitManager : MonoBehaviour
             string rawJson = www.downloadHandler.text;
             Debug.Log($"[FruitManager] AcceptedTasks Raw JSON:\n{rawJson}");
 
-            // ② JSON → 객체 파싱
+            // 기존 구조를 먼저 시도 (실제로 받는 구조)
             var list = JsonUtility.FromJson<AcceptedListData>(rawJson);
-            Debug.Log($"[FruitManager] JSON 파싱 결과: list={(list != null ? "성공" : "NULL!")}");
-
-            // ③ 파싱된 각 항목을 로그에 출력
+            
             if (list?.tasks != null && list.tasks.Count > 0)
             {
-                Debug.Log($"[FruitManager] AcceptedTasks 개수: {list.tasks.Count}");
+                Debug.Log($"[FruitManager] ✅ 기존 구조로 파싱 성공: {list.tasks.Count}개 tasks");
                 foreach (var task in list.tasks)
                 {
-                                    Debug.Log($"[FruitManager] AcceptedTask → " +
-                          $"id={task.id}, todo={task.todo}, date={task.date}, time={task.time}, acceptedAt={task.acceptedAt}, userId={task.userId}");
+                    Debug.Log($"[FruitManager] Task → id={task.id}, todo={task.todo}, date={task.date}, time={task.time}, emotion='{task.emotion}'");
+                    yield return StartCoroutine(HandleOneTask(task));
                 }
             }
             else
             {
-                Debug.LogWarning("[FruitManager] AcceptedTasks 목록이 비어 있습니다.");
-                yield break; // 목록이 비어있으면 더 이상 진행하지 않음
-            }
+                // 기존 구조로 파싱 실패 시 새로운 WeekData 구조로 시도
+                Debug.LogWarning("[FruitManager] ❌ 기존 구조 파싱 실패, 새로운 WeekData 구조로 시도");
+                currentWeekData = JsonUtility.FromJson<WeekData>(rawJson);
+                
+                if (currentWeekData != null && currentWeekData.tasks != null)
+                {
+                    Debug.Log($"[FruitManager] ✅ 새로운 WeekData 구조로 파싱 성공:");
+                    Debug.Log($"[FruitManager] 주간 시작: {currentWeekData.weekStartDate}");
+                    Debug.Log($"[FruitManager] 주간 종료: {currentWeekData.weekEndDate}");
+                    Debug.Log($"[FruitManager] Tasks 개수: {currentWeekData.tasks.Count}");
+                    Debug.Log($"[FruitManager] Fruits 개수: {currentWeekData.fruits?.Count ?? 0}");
 
-            // ④ 기존 로직: 각 task 처리
-                    foreach (var task in list.tasks)
-        {
-            yield return StartCoroutine(HandleOneTask(task));
-        }
+                    // Tasks 정보 출력
+                    foreach (var task in currentWeekData.tasks)
+                    {
+                        Debug.Log($"[FruitManager] Task → id={task.id}, todo={task.todo}, date={task.date}, time={task.time}, emotion='{task.emotion}'");
+                    }
+
+                    // Fruits 정보 출력
+                    if (currentWeekData.fruits != null && currentWeekData.fruits.Count > 0)
+                    {
+                        foreach (var fruit in currentWeekData.fruits)
+                        {
+                            Debug.Log($"[FruitManager] Fruit → id={fruit.id}, taskId={fruit.acceptedTaskId}, emotion='{fruit.emotion}'");
+                        }
+                    }
+
+                    // 각 task 처리
+                    foreach (var task in currentWeekData.tasks)
+                    {
+                        yield return StartCoroutine(HandleOneTask(task));
+                    }
+                }
+                else
+                {
+                    Debug.LogError("[FruitManager] ❌ 모든 JSON 파싱 시도 실패");
+                    Debug.LogError($"[FruitManager] JSON 길이: {rawJson.Length}");
+                    Debug.LogError($"[FruitManager] JSON 시작 부분: {rawJson.Substring(0, Math.Min(100, rawJson.Length))}");
+                }
+            }
         }
     }
 
     private IEnumerator HandleOneTask(AcceptedTaskData task)
     {
-        // 먼저, 백엔드에 해당 taskId 로 fruit 리스트가 있는지 물어봅니다.
-        using (var www = UnityWebRequest.Get($"{fruitUrl}/{task.id}"))
+        // 현재 주간 데이터에서 해당 taskId의 fruit 찾기
+        FruitData existingFruit = null;
+        if (currentWeekData?.fruits != null)
         {
-            yield return www.SendWebRequest();
+            existingFruit = currentWeekData.fruits.Find(f => f.acceptedTaskId == task.id);
+        }
+
+        if (existingFruit == null)
+        {
+            // 새로운 과일 생성
+            Vector3 spawnPos = spawnPoint != null
+                ? GetBasketSpawnPosition(spawnedFruits.Count)
+                : transform.position;
             
-            if (www.result != UnityWebRequest.Result.Success)
+            Debug.Log($"[FruitManager] 새 과일 스폰 위치: {spawnPos}");
+
+            if (fruitPrefab == null)
             {
-                Debug.LogError($"Fruit GET 실패 for task {task.id}: {www.error}");
-                Debug.LogError($"응답 코드: {www.responseCode}");
+                Debug.LogError("[FruitManager] fruitPrefab이 NULL입니다! Inspector에서 설정해주세요.");
                 yield break;
             }
 
-            // JSON → FruitListData 파싱 (root 필드 이름이 "fruits" 여야 합니다)
-            var json = www.downloadHandler.text;
-            Debug.Log($"[FruitManager] Fruit GET 응답 JSON: {json}");
+            GameObject obj = Instantiate(
+                fruitPrefab,
+                spawnPos,
+                Quaternion.identity
+            );
             
-            var list = JsonUtility.FromJson<FruitListData>(json);
-            var fruits = list?.fruits ?? new List<FruitData>();
+            Debug.Log($"[FruitManager] 새 Fruit 인스턴스 생성 완료: {obj.name}");
 
-            if (fruits.Count == 0)
+            obj.transform.SetParent(transform, worldPositionStays: true);
+            obj.transform.rotation = Quaternion.identity;
+
+            var infoUI = obj.GetComponent<FruitInfoUI>()
+                         ?? obj.AddComponent<FruitInfoUI>();
+            
+            Debug.Log($"[FruitManager] FruitInfoUI 컴포넌트: {(infoUI != null ? "성공" : "NULL!")}");
+
+            // EmojiController 찾아서 FruitInfoUI에 설정
+            var emojiCtrl = obj.GetComponent<EmojiController>();
+            if (emojiCtrl == null)
             {
-                
-                // (1) spawnPoint 가 있으면 그 위치, 없으면 매니저 위치
-                Vector3 spawnPos = spawnPoint != null
-                    ? GetBasketSpawnPosition(spawnedFruits.Count)
-                    : transform.position;
-                
-                Debug.Log($"[FruitManager] 스폰 위치: {spawnPos}");
-                Debug.Log($"[FruitManager] fruitPrefab: {(fruitPrefab != null ? "NULL이 아님" : "NULL!")}");
-
-                if (fruitPrefab == null)
-                {
-                    Debug.LogError("[FruitManager] fruitPrefab이 NULL입니다! Inspector에서 설정해주세요.");
-                    yield break;
-                }
-
-                // (2) 월드 좌표, 완전한 회전(0,0,0)으로 인스턴스화
-                GameObject obj = Instantiate(
-                    fruitPrefab,
-                    spawnPos,
-                    Quaternion.identity   // world-space 회전을 0으로 고정
-                );
-                
-                Debug.Log($"[FruitManager] Fruit 인스턴스 생성 완료: {obj.name}");
-
-                // (3) 필요하면 월드 위치 그대로 자식으로 붙입니다.
-                //     부모 회전을 물려받지 않으려면 worldPositionStays: true 를 사용
-                obj.transform.SetParent(transform, worldPositionStays: true);
-
-                Debug.Log("[FruitManager] after Instantiation rot = " + obj.transform.rotation.eulerAngles);
-
-                // (4) 다시 한번 확실히 회전 리셋
-                obj.transform.rotation = Quaternion.identity;
-
-                Debug.Log("[FruitManager] after zeroing rot = " + obj.transform.rotation.eulerAngles);
-
-                // (5) FruitInfoUI 컴포넌트를 꺼져 있거나 없으면 붙이고
-                var infoUI = obj.GetComponent<FruitInfoUI>()
-                             ?? obj.AddComponent<FruitInfoUI>();
-                
-                Debug.Log($"[FruitManager] FruitInfoUI 컴포넌트: {(infoUI != null ? "성공" : "NULL!")}");
-
-                // (5-1) EmojiController 찾아서 FruitInfoUI에 설정
-                var emojiCtrl = obj.GetComponent<EmojiController>();
-                if (emojiCtrl == null)
-                {
-                    emojiCtrl = obj.GetComponentInChildren<EmojiController>(false);
-                }
-                
-                // 모든 EmojiController 찾기 (디버깅용)
-                var allEmojiControllers = obj.GetComponentsInChildren<EmojiController>();
-                Debug.Log($"[FruitManager] 🔍 {obj.name}에서 발견된 모든 EmojiController 개수: {allEmojiControllers.Length}");
-                foreach (var ec in allEmojiControllers)
-                {
-                    Debug.Log($"[FruitManager] 🔍 {obj.name}에서 EmojiController 발견: {ec.gameObject.name} (items 개수: {ec.items.Count})");
-                }
-                
-                if (emojiCtrl != null && infoUI.emojiController == null)
-                {
-                    infoUI.emojiController = emojiCtrl;
-                }
-
-                // 신규 과일 생성 시
-                infoUI.Initialize(task);
-                if (infoUI.emojiController != null)
-                    infoUI.emojiController.SetCurrentFruitInfoUI(infoUI);
-                infoUI.currentEmotion = "";
-
-                // (6) JSON 데이터로 초기화
-                // (7) 로컬 리스트에도 기록
-                spawnedFruits.Add(new FruitData
-                {
-                    acceptedTaskId = task.id,
-                    posX = spawnPos.x,
-                    posY = spawnPos.y,
-                    posZ = spawnPos.z,
-                    extraData = "{}"
-                });
-                
-                Debug.Log($"[FruitManager] Fruit 생성 완료: taskId={task.id}, 위치={spawnPos}");
+                emojiCtrl = obj.GetComponentInChildren<EmojiController>(false);
             }
+            
+            if (emojiCtrl != null && infoUI.emojiController == null)
+            {
+                infoUI.emojiController = emojiCtrl;
+            }
+
+            infoUI.Initialize(task);
+            if (infoUI.emojiController != null)
+                infoUI.emojiController.SetCurrentFruitInfoUI(infoUI);
+            
+            // task에서 emotion 값 사용 (fruits에 없으면 task의 emotion 사용)
+            string emotionToUse = !string.IsNullOrEmpty(task.emotion) ? task.emotion : "";
+            
+            // 'none' 값을 빈 문자열로 처리
+            if (emotionToUse == "none" || emotionToUse == "NONE")
+            {
+                emotionToUse = "";
+                Debug.Log($"[FruitManager] Task {task.id}의 'none' 값을 빈 문자열로 변환");
+            }
+            
+            infoUI.currentEmotion = emotionToUse;
+            
+            // emotion 값이 있으면 EmojiController에 설정
+            if (!string.IsNullOrEmpty(emotionToUse))
+            {
+                StartCoroutine(SetEmotionAfterAwake(obj, emotionToUse));
+            }
+
+            spawnedFruits.Add(new FruitData
+            {
+                acceptedTaskId = task.id,
+                posX = spawnPos.x,
+                posY = spawnPos.y,
+                posZ = spawnPos.z,
+                emotion = emotionToUse
+            });
+            
+            Debug.Log($"[FruitManager] 새 Fruit 생성 완료: taskId={task.id}, 위치={spawnPos}, emotion={emotionToUse}");
+        }
+        else
+        {
+            // 기존 과일이 있으면 저장된 위치 정보를 사용해서 생성
+            Vector3 spawnPos;
+            if (existingFruit.position != null)
+                spawnPos = new Vector3(existingFruit.position.x, existingFruit.position.y, existingFruit.position.z);
             else
+                spawnPos = spawnPoint != null ? GetBasketSpawnPosition(spawnedFruits.Count) : transform.position;
+
+            if (fruitPrefab == null)
             {
-                // 기존 과일이 있으면 저장된 위치 정보를 사용해서 생성
-                foreach (var fruit in fruits)
-                {
-                    // position 정보가 있으면 해당 위치, 없으면 spawnPoint
-                    Vector3 spawnPos;
-                    if (fruit.position != null)
-                        spawnPos = new Vector3(fruit.position.x, fruit.position.y, fruit.position.z);
-                    else
-                        spawnPos = spawnPoint != null ? GetBasketSpawnPosition(spawnedFruits.Count) : transform.position;
-
-                    if (fruitPrefab == null)
-                    {
-                        Debug.LogError("[FruitManager] fruitPrefab이 NULL입니다! Inspector에서 설정해주세요.");
-                        yield break;
-                    }
-
-                    GameObject obj = Instantiate(
-                        fruitPrefab,
-                        spawnPos,
-                        Quaternion.identity
-                    );
-                    Debug.Log($"[FruitManager] 기존 위치에 Fruit 인스턴스 생성 완료: {obj.name}");
-
-                    obj.transform.SetParent(transform, worldPositionStays: true);
-                    obj.transform.rotation = Quaternion.identity;
-
-                    var infoUI = obj.GetComponent<FruitInfoUI>()
-                                 ?? obj.AddComponent<FruitInfoUI>();
-                    
-                    Debug.Log($"[FruitManager] FruitInfoUI 컴포넌트: {(infoUI != null ? "성공" : "NULL!")}");
-
-                    // EmojiController 찾아서 FruitInfoUI에 설정
-                    var emojiCtrl = obj.GetComponent<EmojiController>();
-                    if (emojiCtrl == null)
-                    {
-                        emojiCtrl = obj.GetComponentInChildren<EmojiController>(false);
-                    }
-                    if (emojiCtrl != null && infoUI.emojiController == null)
-                    {
-                        infoUI.emojiController = emojiCtrl;
-                    }
-
-                    infoUI.Initialize(task);
-                    if (infoUI.emojiController != null)
-                        infoUI.emojiController.SetCurrentFruitInfoUI(infoUI);
-                    infoUI.currentEmotion = !string.IsNullOrEmpty(fruit.emotion) ? fruit.emotion : "";
-
-                    // emotion 값 전달 (다음 프레임에서 실행하여 Awake 완료 보장)
-                    if (!string.IsNullOrEmpty(fruit.emotion))
-                    {
-                        StartCoroutine(SetEmotionAfterAwake(obj, fruit.emotion));
-                    }
-
-                    spawnedFruits.Add(new FruitData
-                    {
-                        acceptedTaskId = task.id,
-                        posX = spawnPos.x,
-                        posY = spawnPos.y,
-                        posZ = spawnPos.z,
-                        extraData = "{}",
-                        emotion = fruit.emotion,
-                        position = fruit.position
-                    });
-                    
-                    Debug.Log($"[FruitManager] 기존 위치에 Fruit 생성 완료: taskId={task.id}, 위치={spawnPos}");
-                }
+                Debug.LogError("[FruitManager] fruitPrefab이 NULL입니다! Inspector에서 설정해주세요.");
+                yield break;
             }
+
+            GameObject obj = Instantiate(
+                fruitPrefab,
+                spawnPos,
+                Quaternion.identity
+            );
+            Debug.Log($"[FruitManager] 기존 위치에 Fruit 인스턴스 생성 완료: {obj.name}");
+
+            obj.transform.SetParent(transform, worldPositionStays: true);
+            obj.transform.rotation = Quaternion.identity;
+
+            var infoUI = obj.GetComponent<FruitInfoUI>()
+                         ?? obj.AddComponent<FruitInfoUI>();
+            
+            Debug.Log($"[FruitManager] FruitInfoUI 컴포넌트: {(infoUI != null ? "성공" : "NULL!")}");
+
+            // EmojiController 찾아서 FruitInfoUI에 설정
+            var emojiCtrl = obj.GetComponent<EmojiController>();
+            if (emojiCtrl == null)
+            {
+                emojiCtrl = obj.GetComponentInChildren<EmojiController>(false);
+            }
+            if (emojiCtrl != null && infoUI.emojiController == null)
+            {
+                infoUI.emojiController = emojiCtrl;
+            }
+
+            infoUI.Initialize(task);
+            if (infoUI.emojiController != null)
+                infoUI.emojiController.SetCurrentFruitInfoUI(infoUI);
+            
+            // fruits의 emotion 우선, 없으면 task의 emotion 사용
+            string emotionToUse = !string.IsNullOrEmpty(existingFruit.emotion) ? existingFruit.emotion : 
+                                 (!string.IsNullOrEmpty(task.emotion) ? task.emotion : "");
+            
+            // 'none' 값을 빈 문자열로 처리
+            if (emotionToUse == "none" || emotionToUse == "NONE")
+            {
+                emotionToUse = "";
+                Debug.Log($"[FruitManager] Task {task.id}의 'none' 값을 빈 문자열로 변환");
+            }
+            
+            infoUI.currentEmotion = emotionToUse;
+
+            // emotion 값 전달 (다음 프레임에서 실행하여 Awake 완료 보장)
+            if (!string.IsNullOrEmpty(emotionToUse))
+            {
+                StartCoroutine(SetEmotionAfterAwake(obj, emotionToUse));
+            }
+
+            spawnedFruits.Add(new FruitData
+            {
+                acceptedTaskId = task.id,
+                posX = spawnPos.x,
+                posY = spawnPos.y,
+                posZ = spawnPos.z,
+                emotion = emotionToUse,
+                position = existingFruit.position
+            });
+            
+            Debug.Log($"[FruitManager] 기존 위치에 Fruit 생성 완료: taskId={task.id}, 위치={spawnPos}, emotion={emotionToUse}");
         }
     }
 
-    private IEnumerator CreateFruit(long taskId, Vector3 pos)
-    {
-        var dto = new FruitData
-        {
-            acceptedTaskId = taskId,
-            posX = pos.x,
-            posY = pos.y,
-            posZ = pos.z,
-            extraData = "{}"  // JSON 형태로 보내려면 문자열로
-        };
-        string json = JsonUtility.ToJson(dto);
-
-        using (var req = new UnityWebRequest(fruitUrl, "POST"))
-        {
-            byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
-            req.uploadHandler = new UploadHandlerRaw(body);
-            req.downloadHandler = new DownloadHandlerBuffer();
-            req.SetRequestHeader("Content-Type", "application/json");
-
-            yield return req.SendWebRequest();
-            if (req.result != UnityWebRequest.Result.Success)
-                Debug.LogError($"Fruit POST 실패: {req.error}");
-        }
-    }
-        public void OnSaveButtonPressed()
+    public void OnSaveButtonPressed()
     {
         // 새로운 전체 저장 방식 사용
         var fruitSaver = FindObjectOfType<FruitSaver>();
@@ -346,7 +299,31 @@ public class FruitManager : MonoBehaviour
         }
 
         Debug.Log("✅ 모든 fruit 저장 완료");
-        spawnedFruits.Clear(); // 선택
+        spawnedFruits.Clear();
+    }
+
+    private IEnumerator CreateFruit(long taskId, Vector3 pos)
+    {
+        var dto = new FruitData
+        {
+            acceptedTaskId = taskId,
+            posX = pos.x,
+            posY = pos.y,
+            posZ = pos.z
+        };
+        string json = JsonUtility.ToJson(dto);
+
+        using (var req = new UnityWebRequest(fruitUrl, "POST"))
+        {
+            byte[] body = System.Text.Encoding.UTF8.GetBytes(json);
+            req.uploadHandler = new UploadHandlerRaw(body);
+            req.downloadHandler = new DownloadHandlerBuffer();
+            req.SetRequestHeader("Content-Type", "application/json");
+
+            yield return req.SendWebRequest();
+            if (req.result != UnityWebRequest.Result.Success)
+                Debug.LogError($"Fruit POST 실패: {req.error}");
+        }
     }
 
     // 층마다 랜더 쌓임 위치 생성 함수
