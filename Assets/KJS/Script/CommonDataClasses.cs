@@ -24,6 +24,8 @@ public class FruitData
 {
     public long id;
     public long acceptedTaskId;
+    public string todo; // JSON에서 오는 todo 필드
+    public string date; // JSON에서 오는 date 필드
     public float posX, posY, posZ;
     public string createdAt;
     public string emotion;
@@ -42,11 +44,16 @@ public class TreeData
 [Serializable]
 public class WeekData
 {
-    public string weekStartDate;
-    public string weekEndDate;
-    public List<AcceptedTaskData> tasks;
+    public string weekStart;
+    public string weekEnd;
+    public TreeData tree;
     public List<FruitData> fruits;
-    public List<TreeData> trees;
+}
+
+[Serializable]
+public class WeeksData
+{
+    public List<WeekData> weeks;
 }
 
 // 기존 구조와의 호환성을 위한 클래스들

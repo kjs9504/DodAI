@@ -73,8 +73,24 @@ public class FruitInfoUI : MonoBehaviour, IPointerClickHandler
 
         if (billboardText != null)
         {
-            var dt = DateTime.ParseExact(data.date, "yyyy-MM-dd", CultureInfo.InvariantCulture);
-            billboardText.text = $"{dt.Month}월 {dt.Day}일의 열매";
+            // date가 유효한지 확인 후 파싱
+            if (!string.IsNullOrEmpty(data.date))
+            {
+                try
+                {
+                    var dt = DateTime.ParseExact(data.date, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                    billboardText.text = $"{dt.Month}월 {dt.Day}일의 열매";
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogWarning($"[FruitInfoUI] 날짜 파싱 실패: {data.date}, 오류: {e.Message}");
+                    billboardText.text = "열매";
+                }
+            }
+            else
+            {
+                billboardText.text = "열매";
+            }
         }
 
         UpdateUI();
@@ -109,14 +125,66 @@ public class FruitInfoUI : MonoBehaviour, IPointerClickHandler
 
     private void UpdateUI()
     {
-        // 날짜와 시간 파싱
-        var dt = DateTime.ParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture);
-        var timeSpan = TimeSpan.Parse(time);
+        Debug.Log($"[FruitInfoUI] UpdateUI() 호출됨 - todo: '{todo}', date: '{date}', time: '{time}'");
         
-        if (todoText != null) todoText.text = $"{dt.Month}월{dt.Day}일 {timeSpan.Hours}시 {timeSpan.Minutes}분 {todo}";
-        if (userIdText != null) userIdText.text = userId.HasValue
-                                        ? $"User ID: {userId.Value}"
-                                        : "User ID: (none)";
+        // 날짜와 시간 파싱 (안전하게 처리)
+        DateTime dt = DateTime.Now; // 기본값
+        TimeSpan timeSpan = TimeSpan.Zero; // 기본값
+        
+        if (!string.IsNullOrEmpty(date))
+        {
+            try
+            {
+                dt = DateTime.ParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[FruitInfoUI] UpdateUI - 날짜 파싱 실패: {date}, 오류: {e.Message}");
+            }
+        }
+        
+        if (!string.IsNullOrEmpty(time))
+        {
+            try
+            {
+                timeSpan = TimeSpan.Parse(time);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[FruitInfoUI] UpdateUI - 시간 파싱 실패: {time}, 오류: {e.Message}");
+            }
+        }
+        
+        if (todoText != null) 
+        {
+            string finalText;
+            if (!string.IsNullOrEmpty(date) && !string.IsNullOrEmpty(time))
+            {
+                finalText = $"{dt.Month}월{dt.Day}일 {timeSpan.Hours}시 {timeSpan.Minutes}분 {todo}";
+            }
+            else
+            {
+                finalText = todo;
+            }
+            
+            todoText.text = finalText;
+            Debug.Log($"[FruitInfoUI] todoText 설정: '{finalText}'");
+        }
+        else
+        {
+            Debug.LogWarning("[FruitInfoUI] todoText가 null입니다!");
+        }
+        
+        if (userIdText != null) 
+        {
+            string userIdString = userId.HasValue ? $"User ID: {userId.Value}" : "User ID: (none)";
+            userIdText.text = userIdString;
+            Debug.Log($"[FruitInfoUI] userIdText 설정: '{userIdString}'");
+        }
+        else
+        {
+            Debug.LogWarning("[FruitInfoUI] userIdText가 null입니다!");
+        }
     }
 }
 
