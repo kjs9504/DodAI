@@ -85,13 +85,35 @@ public class TreeController : MonoBehaviour
     {
         try
         {
-            // 새로운 WeeksData 구조로 파싱 시도
-            Debug.Log("새로운 WeeksData 구조로 파싱 시도");
+            // 1. 새로운 단일 객체 구조로 파싱 시도
+            Debug.Log("새로운 단일 객체 구조로 파싱 시도");
+            var newData = JsonUtility.FromJson<NewDataStructure>(json);
+            
+            if (newData != null && newData.trees != null && newData.trees.Count > 0)
+            {
+                Debug.Log($"새로운 단일 객체 구조로 파싱 성공:");
+                Debug.Log($"Week: {newData.weekStartDate} ~ {newData.weekEndDate}");
+                Debug.Log($"Trees 개수: {newData.trees.Count}");
+                Debug.Log($"Fruits 개수: {newData.fruits?.Count ?? 0}");
+                Debug.Log($"Tasks 개수: {newData.tasks?.Count ?? 0}");
+                
+                // 단일 객체 구조용 버튼 생성
+                GenerateButtonsFromNewDataStructure(newData);
+                
+                // 자동으로 첫 번째 데이터 선택
+                SelectFirstTreeData(newData);
+                
+                // 성공했으므로 다른 파싱 방식 시도하지 않음
+                return;
+            }
+            
+            // 2. 새로운 WeeksData 구조로 파싱 시도
+            Debug.Log("WeeksData 구조로 파싱 시도");
             currentWeeksData = JsonUtility.FromJson<WeeksData>(json);
             
             if (currentWeeksData != null && currentWeeksData.weeks != null)
             {
-                Debug.Log($"새로운 WeeksData 구조로 파싱 성공:");
+                Debug.Log($"WeeksData 구조로 파싱 성공:");
                 Debug.Log($"Weeks 개수: {currentWeeksData.weeks.Count}");
                 
                 weeksDataList.Clear();
@@ -116,8 +138,8 @@ public class TreeController : MonoBehaviour
             }
             else
             {
-                // WeeksData 파싱 실패 시 기존 구조들로 시도
-                Debug.LogWarning("WeeksData 구조 파싱 실패, 기존 구조들로 시도");
+                // 3. 기존 구조들로 시도
+                Debug.LogWarning("기존 구조들로 시도");
                 
                 // 먼저 JSON이 배열 형태인지 확인
                 if (json.Trim().StartsWith("["))
@@ -181,6 +203,159 @@ public class TreeController : MonoBehaviour
         }
     }
     
+    // 새로운 단일 객체 구조로 버튼 생성
+    private void GenerateButtonsFromNewDataStructure(NewDataStructure newData)
+    {
+        Debug.Log($"GenerateButtonsFromNewDataStructure() 호출됨 - trees 개수: {newData.trees?.Count ?? 0}");
+        
+        if (buttonPrefab == null)
+        {
+            Debug.LogError("버튼 프리팹이 할당되지 않았습니다!");
+            return;
+        }
+        
+        if (buttonParent == null)
+        {
+            Debug.LogError("버튼 부모가 할당되지 않았습니다!");
+            return;
+        }
+        
+        // 기존 생성된 버튼들 제거
+        ClearGeneratedButtons();
+        
+        // 각 tree에 대해 버튼 생성
+        int buttonIndex = 0;
+        
+        for (int i = 0; i < newData.trees.Count; i++)
+        {
+            var tree = newData.trees[i];
+            
+            Debug.Log($"Tree 버튼 {buttonIndex} 생성 중... (Tree {i}: {tree.emotion} - {tree.date})");
+            
+            GameObject buttonObj = Instantiate(buttonPrefab, buttonParent);
+            Button button = buttonObj.GetComponent<Button>();
+            
+            if (button != null)
+            {
+                // 버튼 텍스트 설정 (tree의 emotion 사용)
+                TextMeshProUGUI buttonText = buttonObj.GetComponentInChildren<TextMeshProUGUI>();
+                if (buttonText != null)
+                {
+                    buttonText.text = tree.emotion;
+                }
+                
+                // Date 텍스트 설정 (week 범위 표시)
+                Transform dateTransform = buttonObj.transform.Find("Date");
+                if (dateTransform != null)
+                {
+                    TextMeshProUGUI dateText = dateTransform.GetComponent<TextMeshProUGUI>();
+                    if (dateText != null)
+                    {
+                        dateText.text = $"{newData.weekStartDate} ~ {newData.weekEndDate}";
+                    }
+                    else
+                    {
+                        TextMeshProUGUI childDateText = dateTransform.GetComponentInChildren<TextMeshProUGUI>();
+                        if (childDateText != null)
+                        {
+                            childDateText.text = $"{newData.weekStartDate} ~ {newData.weekEndDate}";
+                        }
+                    }
+                    
+                    // GoodPoint 설정 (tree의 goodPoints 사용)
+                    Transform goodPointTransform = dateTransform.Find("GoodPoint");
+                    if (goodPointTransform != null)
+                    {
+                        TextMeshProUGUI goodPointText = goodPointTransform.GetComponent<TextMeshProUGUI>();
+                        if (goodPointText != null)
+                        {
+                            goodPointText.text = tree.goodPoints;
+                            generatedGoodPointsTexts.Add(goodPointText);
+                        }
+                        else
+                        {
+                            generatedGoodPointsTexts.Add(null);
+                        }
+                    }
+                    else
+                    {
+                        generatedGoodPointsTexts.Add(null);
+                    }
+                }
+                else
+                {
+                    generatedGoodPointsTexts.Add(null);
+                }
+                
+                // 버튼 클릭 이벤트 설정 (실제 tree 인덱스 사용)
+                int treeIndex = i;
+                button.onClick.AddListener(() => OnNewDataStructureButtonClick(newData, treeIndex));
+                
+                // 버튼 위치 설정
+                RectTransform rectTransform = buttonObj.GetComponent<RectTransform>();
+                if (rectTransform != null)
+                {
+                    rectTransform.anchoredPosition = new Vector2(0, -buttonIndex * (rectTransform.rect.height + buttonSpacing));
+                }
+                
+                generatedButtons.Add(button);
+                buttonIndex++;
+                
+                Debug.Log($"버튼 생성 완료! Tree {i} ({tree.emotion} - {tree.date})");
+            }
+        }
+        
+        Debug.Log($"총 {generatedButtons.Count}개의 Tree 버튼이 생성되었습니다.");
+    }
+    
+    // 새로운 단일 객체 구조 버튼 클릭 시 호출
+    private void OnNewDataStructureButtonClick(NewDataStructure newData, int treeIndex)
+    {
+        Debug.Log($"NewDataStructure 버튼 {treeIndex} 클릭됨");
+        
+        if (treeIndex >= 0 && treeIndex < newData.trees.Count)
+        {
+            var selectedTree = newData.trees[treeIndex];
+            
+            // Tree 데이터 설정
+            currentTreeData = selectedTree;
+            UpdateUI();
+            OnEmotionButtonClick();
+            Debug.Log($"Tree {treeIndex} 활성화: {selectedTree.emotion}");
+            
+            // Fruits 활성화 (FruitManager에 전달) - 코루틴으로 호출
+            if (fruitManager != null && newData.fruits != null)
+            {
+                StartCoroutine(fruitManager.ActivateWeekFruits(newData.fruits));
+                Debug.Log($"Fruits 활성화 시작: {newData.fruits.Count}개");
+            }
+            else
+            {
+                Debug.LogWarning($"FruitManager가 없거나 fruits가 null입니다. treeIndex: {treeIndex}");
+            }
+            
+            Debug.Log($"NewDataStructure 버튼 {treeIndex} 처리 완료");
+        }
+        else
+        {
+            Debug.LogError($"잘못된 Tree 버튼 인덱스: {treeIndex}");
+        }
+    }
+    
+    // 새로운 단일 객체 구조의 첫 번째 데이터 선택
+    private void SelectFirstTreeData(NewDataStructure newData)
+    {
+        if (newData.trees == null || newData.trees.Count == 0)
+        {
+            Debug.LogWarning("선택할 Tree 데이터가 없습니다.");
+            return;
+        }
+        
+        // 첫 번째 tree를 자동으로 선택
+        OnNewDataStructureButtonClick(newData, 0);
+        Debug.Log($"첫 번째 Tree가 자동 선택되었습니다: {newData.trees[0].emotion} - {newData.trees[0].date}");
+    }
+
     // 새로운 WeeksData 구조로 버튼 생성
     private void GenerateButtonsFromWeeksData()
     {

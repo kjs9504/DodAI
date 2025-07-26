@@ -26,7 +26,7 @@ public class FruitData
     public long acceptedTaskId;
     public string todo; // JSON에서 오는 todo 필드
     public string date; // JSON에서 오는 date 필드
-    public float posX, posY, posZ;
+    public float? posX, posY, posZ; // nullable float로 변경
     public string createdAt;
     public string emotion;
     public Position position;
@@ -73,4 +73,15 @@ public class FruitListData
 public class TreeDataList
 {
     public List<TreeData> trees;
-} 
+}
+
+// 새로운 단일 객체 구조
+[Serializable]
+public class NewDataStructure
+{
+    public string weekStartDate;
+    public string weekEndDate;
+    public List<AcceptedTaskData> tasks;
+    public List<FruitData> fruits;
+    public List<TreeData> trees;
+}

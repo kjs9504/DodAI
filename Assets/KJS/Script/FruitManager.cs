@@ -33,6 +33,20 @@ public class FruitManager : MonoBehaviour
         Debug.Log($"[FruitManager] spawnPoint: {(spawnPoint != null ? "설정됨" : "NULL!")}");
         Debug.Log($"[FruitManager] acceptsUrl: {acceptsUrl}");
         
+        // spawnPoint가 null이면 현재 transform을 기본값으로 설정
+        if (spawnPoint == null)
+        {
+            Debug.LogWarning("[FruitManager] spawnPoint가 null입니다! 현재 transform을 기본값으로 설정합니다.");
+            spawnPoint = transform;
+        }
+        
+        // spawnRange가 0이면 기본값 설정
+        if (spawnRange == Vector3.zero)
+        {
+            Debug.LogWarning("[FruitManager] spawnRange가 0입니다! 기본값 (2,1,2)로 설정합니다.");
+            spawnRange = new Vector3(2, 1, 2);
+        }
+        
         StartCoroutine(InitFruits());
     }
 
@@ -56,12 +70,40 @@ public class FruitManager : MonoBehaviour
             string rawJson = www.downloadHandler.text;
             Debug.Log($"[FruitManager] AcceptedTasks Raw JSON:\n{rawJson}");
 
-            // 새로운 WeeksData 구조로 파싱 시도
+            // 1. 새로운 단일 객체 구조로 파싱 시도
+            var newData = JsonUtility.FromJson<NewDataStructure>(rawJson);
+            if (newData != null && newData.fruits != null && newData.fruits.Count > 0)
+            {
+                Debug.Log($"[FruitManager] ✅ 새로운 단일 객체 구조로 파싱 성공: {newData.fruits.Count}개 fruits");
+                Debug.Log($"[FruitManager] Week: {newData.weekStartDate} ~ {newData.weekEndDate}");
+                
+                // JSON에서 null 값을 제대로 처리하기 위해 fruits의 posX, posY, posZ를 수정
+                FixNullPositionValuesForNewData(rawJson, newData);
+                
+                // TreeController가 있으면 TreeController에 데이터 전달
+                var treeController = FindObjectOfType<TreeController>();
+                if (treeController != null)
+                {
+                    Debug.Log("[FruitManager] TreeController에 새로운 데이터 구조 전달");
+                    // TreeController가 자동으로 fruits를 활성화할 것입니다
+                }
+                else
+                {
+                    // TreeController가 없으면 직접 fruits 활성화
+                    yield return StartCoroutine(ActivateWeekFruits(newData.fruits));
+                }
+                yield break;
+            }
+            
+            // 2. 새로운 WeeksData 구조로 파싱 시도
             currentWeeksData = JsonUtility.FromJson<WeeksData>(rawJson);
             
             if (currentWeeksData != null && currentWeeksData.weeks != null && currentWeeksData.weeks.Count > 0)
             {
-                Debug.Log($"[FruitManager] ✅ 새로운 WeeksData 구조로 파싱 성공: {currentWeeksData.weeks.Count}개 weeks");
+                Debug.Log($"[FruitManager] ✅ WeeksData 구조로 파싱 성공: {currentWeeksData.weeks.Count}개 weeks");
+                
+                // JSON에서 null 값을 제대로 처리하기 위해 fruits의 posX, posY, posZ를 수정
+                FixNullPositionValues(rawJson, currentWeeksData);
                 
                 // 가장 최근 주의 fruits를 자동으로 활성화
                 var mostRecentWeek = GetMostRecentWeek();
@@ -73,7 +115,7 @@ public class FruitManager : MonoBehaviour
             }
             else
             {
-                // WeeksData 파싱 실패 시 기존 구조로 시도
+                // 3. 기존 구조로 시도
                 Debug.LogWarning("[FruitManager] ❌ WeeksData 구조 파싱 실패, 기존 구조로 시도");
                 
                 var list = JsonUtility.FromJson<AcceptedListData>(rawJson);
@@ -93,6 +135,156 @@ public class FruitManager : MonoBehaviour
                 }
             }
         }
+    }
+
+    // 새로운 단일 객체 구조에서 null 값을 제대로 처리하는 메서드
+    private void FixNullPositionValuesForNewData(string rawJson, NewDataStructure newData)
+    {
+        Debug.Log("[FruitManager] FixNullPositionValuesForNewData 시작");
+        
+        if (newData.fruits != null)
+        {
+            foreach (var fruit in newData.fruits)
+            {
+                // JSON 문자열에서 해당 fruit의 posX, posY, posZ가 "null"인지 확인
+                string fruitJson = GetFruitJsonFromRawJson(rawJson, fruit.id);
+                if (!string.IsNullOrEmpty(fruitJson))
+                {
+                    // posX가 "null"이면 nullable float를 null로 설정
+                    if (fruitJson.Contains("\"posX\":null"))
+                    {
+                        fruit.posX = null;
+                        Debug.Log($"[FruitManager] Fruit {fruit.id}의 posX를 null로 설정");
+                    }
+                    
+                    // posY가 "null"이면 nullable float를 null로 설정
+                    if (fruitJson.Contains("\"posY\":null"))
+                    {
+                        fruit.posY = null;
+                        Debug.Log($"[FruitManager] Fruit {fruit.id}의 posY를 null로 설정");
+                    }
+                    
+                    // posZ가 "null"이면 nullable float를 null로 설정
+                    if (fruitJson.Contains("\"posZ\":null"))
+                    {
+                        fruit.posZ = null;
+                        Debug.Log($"[FruitManager] Fruit {fruit.id}의 posZ를 null로 설정");
+                    }
+                    
+                    Debug.Log($"[FruitManager] Fruit {fruit.id} 최종 위치: posX={fruit.posX}, posY={fruit.posY}, posZ={fruit.posZ}");
+                }
+            }
+        }
+    }
+
+    // JSON에서 null 값을 제대로 처리하는 메서드
+    private void FixNullPositionValues(string rawJson, WeeksData weeksData)
+    {
+        Debug.Log("[FruitManager] FixNullPositionValues 시작");
+        
+        foreach (var week in weeksData.weeks)
+        {
+            if (week.fruits != null)
+            {
+                foreach (var fruit in week.fruits)
+                {
+                    // JSON 문자열에서 해당 fruit의 posX, posY, posZ가 "null"인지 확인
+                    string fruitJson = GetFruitJsonFromRawJson(rawJson, fruit.id);
+                    if (!string.IsNullOrEmpty(fruitJson))
+                    {
+                        // posX가 "null"이면 nullable float를 null로 설정
+                        if (fruitJson.Contains("\"posX\":null"))
+                        {
+                            fruit.posX = null;
+                            Debug.Log($"[FruitManager] Fruit {fruit.id}의 posX를 null로 설정");
+                        }
+                        
+                        // posY가 "null"이면 nullable float를 null로 설정
+                        if (fruitJson.Contains("\"posY\":null"))
+                        {
+                            fruit.posY = null;
+                            Debug.Log($"[FruitManager] Fruit {fruit.id}의 posY를 null로 설정");
+                        }
+                        
+                        // posZ가 "null"이면 nullable float를 null로 설정
+                        if (fruitJson.Contains("\"posZ\":null"))
+                        {
+                            fruit.posZ = null;
+                            Debug.Log($"[FruitManager] Fruit {fruit.id}의 posZ를 null로 설정");
+                        }
+                        
+                        Debug.Log($"[FruitManager] Fruit {fruit.id} 최종 위치: posX={fruit.posX}, posY={fruit.posY}, posZ={fruit.posZ}");
+                    }
+                }
+            }
+        }
+    }
+    
+    // JSON 문자열에서 특정 fruit의 JSON 부분을 추출
+    private string GetFruitJsonFromRawJson(string rawJson, long fruitId)
+    {
+        try
+        {
+            // fruit ID를 찾아서 해당 fruit의 JSON 부분을 추출
+            string searchPattern = $"\"id\":{fruitId},";
+            int startIndex = rawJson.IndexOf(searchPattern);
+            if (startIndex != -1)
+            {
+                // fruit 객체의 시작 부분 찾기
+                int braceCount = 0;
+                int fruitStart = -1;
+                for (int i = startIndex; i >= 0; i--)
+                {
+                    if (rawJson[i] == '}')
+                    {
+                        braceCount++;
+                    }
+                    else if (rawJson[i] == '{')
+                    {
+                        braceCount--;
+                        if (braceCount == 0)
+                        {
+                            fruitStart = i;
+                            break;
+                        }
+                    }
+                }
+                
+                if (fruitStart != -1)
+                {
+                    // fruit 객체의 끝 부분 찾기
+                    braceCount = 0;
+                    int fruitEnd = -1;
+                    for (int i = fruitStart; i < rawJson.Length; i++)
+                    {
+                        if (rawJson[i] == '{')
+                        {
+                            braceCount++;
+                        }
+                        else if (rawJson[i] == '}')
+                        {
+                            braceCount--;
+                            if (braceCount == 0)
+                            {
+                                fruitEnd = i;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (fruitEnd != -1)
+                    {
+                        return rawJson.Substring(fruitStart, fruitEnd - fruitStart + 1);
+                    }
+                }
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[FruitManager] GetFruitJsonFromRawJson 오류: {e.Message}");
+        }
+        
+        return "";
     }
 
     // 가장 최근 주 찾기
@@ -146,16 +338,57 @@ public class FruitManager : MonoBehaviour
     private IEnumerator CreateFruitFromData(FruitData fruit)
     {
         Vector3 spawnPos;
+        
+        // position이 있으면 사용 (단, (0,0,0)이면 spawnPoint 사용)
         if (fruit.position != null)
         {
-            spawnPos = new Vector3(fruit.position.x, fruit.position.y, fruit.position.z);
+            Vector3 positionValue = new Vector3(fruit.position.x, fruit.position.y, fruit.position.z);
+            
+            // position이 (0,0,0)이면 spawnPoint 사용
+            if (positionValue == Vector3.zero)
+            {
+                Debug.Log($"[FruitManager] Fruit {fruit.id}의 position이 (0,0,0)이므로 spawnPoint 사용");
+                spawnPos = GetBasketSpawnPosition(currentFruitObjects.Count);
+            }
+            else
+            {
+                spawnPos = positionValue;
+                Debug.Log($"[FruitManager] Fruit {fruit.id}의 position 사용: {spawnPos}");
+            }
         }
+        // posX, posY, posZ가 모두 null이 아니면 사용 (단, (0,0,0)이면 spawnPoint 사용)
+        else if (fruit.posX.HasValue && fruit.posY.HasValue && fruit.posZ.HasValue)
+        {
+            Vector3 posValue = new Vector3(fruit.posX.Value, fruit.posY.Value, fruit.posZ.Value);
+            
+            // posX, posY, posZ가 모두 0이면 spawnPoint 사용
+            if (posValue == Vector3.zero)
+            {
+                Debug.Log($"[FruitManager] Fruit {fruit.id}의 posX, posY, posZ가 (0,0,0)이므로 spawnPoint 사용");
+                spawnPos = GetBasketSpawnPosition(currentFruitObjects.Count);
+            }
+            else
+            {
+                spawnPos = posValue;
+                Debug.Log($"[FruitManager] Fruit {fruit.id}의 posX, posY, posZ 사용: {spawnPos}");
+            }
+        }
+        // position과 posX, posY, posZ가 모두 null이면 spawnPoint 사용
         else
         {
-            // position이 null이면 spawnPoint와 spawnRange를 사용하여 랜덤 위치 생성
+            Debug.Log($"[FruitManager] Fruit {fruit.id}의 position과 posX, posY, posZ가 모두 null입니다. spawnPoint 상태 확인:");
+            Debug.Log($"[FruitManager]   - position: {(fruit.position != null ? "있음" : "null")}");
+            Debug.Log($"[FruitManager]   - posX: {(fruit.posX.HasValue ? fruit.posX.Value.ToString() : "null")}");
+            Debug.Log($"[FruitManager]   - posY: {(fruit.posY.HasValue ? fruit.posY.Value.ToString() : "null")}");
+            Debug.Log($"[FruitManager]   - posZ: {(fruit.posZ.HasValue ? fruit.posZ.Value.ToString() : "null")}");
+            Debug.Log($"[FruitManager]   - spawnPoint: {(spawnPoint != null ? "설정됨" : "NULL!")}");
+            Debug.Log($"[FruitManager]   - spawnPoint.position: {(spawnPoint != null ? spawnPoint.position.ToString() : "N/A")}");
+            Debug.Log($"[FruitManager]   - spawnRange: {spawnRange}");
+            Debug.Log($"[FruitManager]   - currentFruitObjects.Count: {currentFruitObjects.Count}");
+            
             // currentFruitObjects.Count를 사용하여 현재 생성된 과일 개수를 기준으로 위치 계산
             spawnPos = GetBasketSpawnPosition(currentFruitObjects.Count);
-            Debug.Log($"[FruitManager] Fruit {fruit.id}의 position이 null이므로 랜덤 위치 생성: {spawnPos} (spawnPoint: {spawnPoint?.position}, spawnRange: {spawnRange})");
+            Debug.Log($"[FruitManager] Fruit {fruit.id}의 position과 posX, posY, posZ가 모두 null이므로 spawnPoint에서 랜덤 위치 생성: {spawnPos}");
         }
 
         Debug.Log($"[FruitManager] Fruit 생성: id={fruit.id}, taskId={fruit.acceptedTaskId}, 위치={spawnPos}, emotion='{fruit.emotion}'");
@@ -335,8 +568,13 @@ public class FruitManager : MonoBehaviour
     {
         foreach (var fruit in spawnedFruits)
         {
+            // nullable float를 안전하게 처리
+            float x = fruit.posX ?? 0f;
+            float y = fruit.posY ?? 0f;
+            float z = fruit.posZ ?? 0f;
+            
             yield return StartCoroutine(CreateFruit(
-                fruit.acceptedTaskId, new Vector3(fruit.posX, fruit.posY, fruit.posZ)));
+                fruit.acceptedTaskId, new Vector3(x, y, z)));
         }
 
         Debug.Log("✅ 모든 fruit 저장 완료");
@@ -370,11 +608,29 @@ public class FruitManager : MonoBehaviour
     // 층마다 랜더 쌓임 위치 생성 함수
     private Vector3 GetBasketSpawnPosition(int fruitIndex)
     {
+        // spawnPoint가 null이면 현재 transform 사용 (Start에서 이미 처리했지만 안전장치)
         Vector3 basePos = spawnPoint != null ? spawnPoint.position : transform.position;
+        
+        // basePos가 (0,0,0)이면 기본 위치 설정
+        if (basePos == Vector3.zero)
+        {
+            Debug.LogWarning("[FruitManager] basePos가 (0,0,0)입니다! 기본 위치 (0,1,0)으로 설정합니다.");
+            basePos = new Vector3(0, 1, 0);
+        }
+        
         int layer = fruitIndex / fruitsPerLayer;
         float x = basePos.x + UnityEngine.Random.Range(-spawnRange.x, spawnRange.x);
         float z = basePos.z + UnityEngine.Random.Range(-spawnRange.z, spawnRange.z);
         float y = basePos.y + (layer * fruitHeight) + UnityEngine.Random.Range(-0.1f, 0.1f);
+        
+        Debug.Log($"[FruitManager] GetBasketSpawnPosition 계산:");
+        Debug.Log($"[FruitManager]   - fruitIndex: {fruitIndex}");
+        Debug.Log($"[FruitManager]   - basePos: {basePos} (spawnPoint: {(spawnPoint != null ? "사용" : "transform.position 사용")})");
+        Debug.Log($"[FruitManager]   - layer: {layer} (fruitsPerLayer: {fruitsPerLayer})");
+        Debug.Log($"[FruitManager]   - spawnRange: {spawnRange}");
+        Debug.Log($"[FruitManager]   - fruitHeight: {fruitHeight}");
+        Debug.Log($"[FruitManager]   - 최종 위치: ({x}, {y}, {z})");
+        
         return new Vector3(x, y, z);
     }
 
