@@ -16,6 +16,7 @@ public class FruitEmotionData
     public Position position;
     public string acceptedAt;
     public string createdAt;
+    public long? userId; // AcceptedTaskData와 호환성을 위해 추가
 }
 
 public class EmojiController : MonoBehaviour
@@ -129,11 +130,28 @@ public class EmojiController : MonoBehaviour
             return;
         }
 
+        // 'none' 값을 빈 문자열로 처리
+        if (emotion == "none" || emotion == "NONE")
+        {
+            emotion = "";
+            Debug.Log("[EmojiController] 'none' 값을 빈 문자열로 변환");
+        }
+
         // --- 수정: 1) 모든 아이템을 기본 상태로 리셋 ---
         foreach (var it in items)
         {
             if (it.mf != null) it.mf.mesh = it.normalMesh;
             if (it.mr != null) it.mr.material = it.normalMaterial;
+        }
+
+        // 감정이 비어있으면 아무것도 적용하지 않음
+        if (string.IsNullOrEmpty(emotion))
+        {
+            Debug.Log("[EmojiController] 감정이 비어있어서 아무것도 적용하지 않음");
+            // FruitInfoUI의 currentEmotion도 빈 문자열로 설정
+            if (currentFruitInfoUI != null)
+                currentFruitInfoUI.SetEmotion("");
+            return;
         }
 
         // --- 수정: 2) 해당 감정 아이템만 적용 ---
@@ -150,6 +168,9 @@ public class EmojiController : MonoBehaviour
         else
         {
             Debug.LogWarning($"감정 '{emotion}' 타입을 찾을 수 없습니다. 사용 가능한 감정: {string.Join(", ", items.Select(it => it.emotionType))}");
+            // FruitInfoUI의 currentEmotion은 빈 문자열로 설정
+            if (currentFruitInfoUI != null)
+                currentFruitInfoUI.SetEmotion("");
         }
     }
 
@@ -200,6 +221,7 @@ public class EmojiController : MonoBehaviour
             },
             acceptedAt = currentFruitInfoUI.acceptedAt,
             createdAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+            userId = currentFruitInfoUI.userId // AcceptedTaskData와 호환성을 위해 추가
         };
         string json = JsonUtility.ToJson(lastEmotionData, true);
         Debug.Log($"🍎 FRUIT JSON:\n{json}");
