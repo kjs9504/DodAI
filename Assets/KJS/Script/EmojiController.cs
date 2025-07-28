@@ -97,6 +97,25 @@ public class EmojiController : MonoBehaviour
             // 4) 기본 상태 저장
             it.normalMesh = it.mf.mesh;
             it.normalMaterial = it.mr.material;
+            
+            // 기본 상태 저장 확인
+            if (it.normalMesh != null)
+            {
+                Debug.Log($"[EmojiController] Item[{index}] normalMesh 저장 완료: {it.normalMesh.name}");
+            }
+            else
+            {
+                Debug.LogError($"[EmojiController] Item[{index}] normalMesh 저장 실패!");
+            }
+            
+            if (it.normalMaterial != null)
+            {
+                Debug.Log($"[EmojiController] Item[{index}] normalMaterial 저장 완료: {it.normalMaterial.name}");
+            }
+            else
+            {
+                Debug.LogError($"[EmojiController] Item[{index}] normalMaterial 저장 실패!");
+            }
 
             // 5) Raycast 활성화
             it.uiButton.raycastTarget = true;
@@ -177,10 +196,18 @@ public class EmojiController : MonoBehaviour
     private void OnPressed(Item it)
     {
         if (it.mf == null || it.mr == null) return;
-        if (it.normalMesh == null) it.normalMesh = it.mf.mesh;
-        if (it.normalMaterial == null) it.normalMaterial = it.mr.material;
-        if (it.pressedMesh != null) it.mf.mesh = it.pressedMesh;
-        if (it.pressedMaterial != null) it.mr.material = it.pressedMaterial;
+        
+        // pressedMesh와 pressedMaterial 적용
+        if (it.pressedMesh != null) 
+        {
+            it.mf.mesh = it.pressedMesh;
+            Debug.Log($"[EmojiController] {it.emotionType} 아이템에 pressedMesh 적용");
+        }
+        if (it.pressedMaterial != null) 
+        {
+            it.mr.material = it.pressedMaterial;
+            Debug.Log($"[EmojiController] {it.emotionType} 아이템에 pressedMaterial 적용");
+        }
     }
 
     private void OnReleased(Item it)
@@ -188,13 +215,38 @@ public class EmojiController : MonoBehaviour
         if (it.mf == null || it.mr == null)
             return;
 
-        // 1) 실제 감정 적용 (비주얼 + FruitInfoUI.currentEmotion 갱신)
-        SetEmotion(it.emotionType);
+        // 1) 해당 아이템의 메시와 머티리얼을 직접 복원
+        if (it.normalMesh != null) 
+        {
+            it.mf.mesh = it.normalMesh;
+            Debug.Log($"[EmojiController] {it.emotionType} 아이템의 메시를 normalMesh로 복원");
+        }
+        else
+        {
+            Debug.LogWarning($"[EmojiController] {it.emotionType} 아이템의 normalMesh가 null입니다!");
+        }
+        
+        if (it.normalMaterial != null) 
+        {
+            it.mr.material = it.normalMaterial;
+            Debug.Log($"[EmojiController] {it.emotionType} 아이템의 머티리얼을 normalMaterial로 복원");
+        }
+        else
+        {
+            Debug.LogWarning($"[EmojiController] {it.emotionType} 아이템의 normalMaterial이 null입니다!");
+        }
 
-        // 2) JSON 생성 (로컬 저장용)
+        // 2) FruitInfoUI의 currentEmotion 갱신
+        if (currentFruitInfoUI != null)
+        {
+            currentFruitInfoUI.SetEmotion(it.emotionType);
+            Debug.Log($"[EmojiController] FruitInfoUI의 currentEmotion을 '{it.emotionType}'으로 설정");
+        }
+
+        // 3) JSON 생성 (로컬 저장용)
         CreateFruitJSON(it.emotionType);
 
-        // 3) 원래 스케일로 복원
+        // 4) 원래 스케일로 복원
         it.targetObject.transform.localScale = it.originalScale;
         
         Debug.Log($"[EmojiController] 감정 '{it.emotionType}' 설정 완료. 저장하려면 저장 버튼을 눌러주세요.");
