@@ -60600,8 +60600,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00f853396bc1c0344b00bde0bb3180c4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  acceptsUrl: http://localhost:8080/api/weekly-report/current
-  fruitUrl: http://localhost::8080/api/fruit
+  acceptsUrl: http://192.168.0.100:8080/api/tasks/accepted
+  fruitUrl: http://192.168.0.100:8080/api/fruit
   fruitPrefab: {fileID: 2921789279522913649, guid: ad312cb541b8dd94bbb670215ec66dd0, type: 3}
   spawnPoint: {fileID: 931840438}
   spawnRange: {x: 0.1, y: 0, z: 0.1}
@@ -60646,12 +60646,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e700ceca8b1bf3540978b45b8a2b7542, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  requestUrl: https://27787e399dd2.ngrok-free.app/analyze
+  requestUrl: https://eb5753b67de9.ngrok-free.app/analyze
   requestMethod: POST
   days: 0
   hours: 0
-  minutes: 0
-  seconds: 10
+  minutes: 5
+  seconds: 0
   persistBetweenSessions: 1
 --- !u!1 &959181125
 GameObject:
@@ -98426,7 +98426,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41adc638e082da948b3145127b6019fc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  backendUrl: http://localhost:8080/api/solution/trees
+  backendUrl: http://192.168.0.100:8080/api/solution/trees
   funObject: {fileID: 87544801}
   angryObject: {fileID: 181446920}
   sadObject: {fileID: 770692905}
