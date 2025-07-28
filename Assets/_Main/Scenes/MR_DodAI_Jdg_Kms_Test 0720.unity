@@ -36379,6 +36379,7 @@ MonoBehaviour:
   dayNumberLabel: {fileID: 760340245}
   dayOfWeekLabel: {fileID: 1713394604}
   todoListManager: {fileID: 0}
+  circleIndicatorPrefab: {fileID: 0}
 --- !u!1 &685846634
 GameObject:
   m_ObjectHideFlags: 0
@@ -66200,9 +66201,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea635cd905b7ac14e83d8bbb852db352, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  serverUrl: https://397689e9f06d.ngrok-free.app/
+  serverUrl: https://99442ef7ee4c.ngrok-free.app/transcribe
   todoListManager: {fileID: 1842023918}
-  backendUrl: http://localhost:8080/api/tasks/bulk
+  backendUrl: http:/192.168.8080/api/tasks/bulk
   errorPanel: {fileID: 1142006713}
   errorText: {fileID: 1182915968}
 --- !u!82 &1260170003

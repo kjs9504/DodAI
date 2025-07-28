@@ -60942,7 +60942,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e700ceca8b1bf3540978b45b8a2b7542, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  requestUrl: https://27787e399dd2.ngrok-free.app/analyze
+  requestUrl: https://a3663cc15c9f.ngrok-free.app/analyze
   requestMethod: POST
   days: 0
   hours: 0
