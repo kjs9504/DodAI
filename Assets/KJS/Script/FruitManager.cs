@@ -25,6 +25,10 @@ public class FruitManager : MonoBehaviour
     private List<FruitData> spawnedFruits = new List<FruitData>();
     private List<GameObject> currentFruitObjects = new List<GameObject>();
     private WeeksData currentWeeksData;
+    
+    // 주차별 과일 관리를 위한 딕셔너리
+    private Dictionary<string, List<GameObject>> weekFruitObjects = new Dictionary<string, List<GameObject>>();
+    private Dictionary<string, List<FruitData>> weekFruitData = new Dictionary<string, List<FruitData>>();
 
     void Start()
     {
@@ -105,13 +109,35 @@ public class FruitManager : MonoBehaviour
                 // JSON에서 null 값을 제대로 처리하기 위해 fruits의 posX, posY, posZ를 수정
                 FixNullPositionValues(rawJson, currentWeeksData);
                 
-                // 가장 최근 주의 fruits를 자동으로 활성화
-                var mostRecentWeek = GetMostRecentWeek();
-                if (mostRecentWeek != null && mostRecentWeek.fruits != null)
+                // 주차별로 과일 데이터 저장
+                weekFruitData.Clear();
+                List<FruitData> allFruits = new List<FruitData>();
+                
+                Debug.Log($"[FruitManager] 주차별 과일 데이터 저장 시작:");
+                foreach (var week in currentWeeksData.weeks)
                 {
-                    Debug.Log($"[FruitManager] 가장 최근 주의 fruits 활성화: {mostRecentWeek.weekStart} ~ {mostRecentWeek.weekEnd}");
-                    yield return StartCoroutine(ActivateWeekFruits(mostRecentWeek.fruits));
+                    if (week.fruits != null && week.fruits.Count > 0)
+                    {
+                        string weekKey = GenerateWeekKey(week.weekStart, week.weekEnd);
+                        weekFruitData[weekKey] = new List<FruitData>(week.fruits);
+                        allFruits.AddRange(week.fruits);
+                        
+                        Debug.Log($"[FruitManager] 주차 '{weekKey}'에서 {week.fruits.Count}개 과일 저장");
+                        Debug.Log($"[FruitManager]   - weekStart: '{week.weekStart}', weekEnd: '{week.weekEnd}'");
+                    }
                 }
+                
+                Debug.Log($"[FruitManager] weekFruitData에 저장된 모든 키들:");
+                foreach (var key in weekFruitData.Keys)
+                {
+                    Debug.Log($"[FruitManager]   - '{key}' (과일 {weekFruitData[key].Count}개)");
+                }
+                
+                Debug.Log($"[FruitManager] 총 {allFruits.Count}개 과일 데이터가 저장되었습니다.");
+                
+                // 모든 과일을 생성하되, 초기에는 가장 최근 주차만 활성화
+                Debug.Log($"[FruitManager] 모든 과일을 생성하고 초기에는 가장 최근 주차만 활성화합니다.");
+                yield return StartCoroutine(CreateAllFruitsWithInitialActivation());
             }
             else
             {
@@ -333,6 +359,340 @@ public class FruitManager : MonoBehaviour
         
         Debug.Log($"[FruitManager] Week fruits 활성화 완료: {weekFruits.Count}개");
     }
+    
+    // 특정 주차의 과일만 활성화
+    public IEnumerator ActivateSpecificWeek(string weekKey)
+    {
+        Debug.Log($"[FruitManager] ActivateSpecificWeek() 호출됨 - 주차: {weekKey}");
+        
+        // weekFruitData의 모든 키 출력
+        Debug.Log($"[FruitManager] weekFruitData에 저장된 주차 키들:");
+        foreach (var key in weekFruitData.Keys)
+        {
+            Debug.Log($"[FruitManager]   - '{key}' (과일 {weekFruitData[key].Count}개)");
+        }
+        
+        if (!weekFruitData.ContainsKey(weekKey))
+        {
+            Debug.LogWarning($"[FruitManager] 주차 {weekKey}의 데이터가 없습니다.");
+            Debug.LogWarning($"[FruitManager] 사용 가능한 주차: {string.Join(", ", weekFruitData.Keys)}");
+            yield break;
+        }
+        
+        // 모든 과일을 비활성화
+        foreach (var fruitObj in currentFruitObjects)
+        {
+            if (fruitObj != null)
+            {
+                fruitObj.SetActive(false);
+            }
+        }
+        
+        // 해당 주차의 과일들만 활성화
+        var weekFruits = weekFruitData[weekKey];
+        Debug.Log($"[FruitManager] {weekKey} 주차에서 {weekFruits.Count}개 과일 찾기 시작");
+        Debug.Log($"[FruitManager] 현재 생성된 과일 오브젝트 수: {currentFruitObjects.Count}");
+        
+        // 모든 과일을 순회하면서 해당 주차의 과일들만 활성화
+        int activatedCount = 0;
+        foreach (var fruitObj in currentFruitObjects)
+        {
+            if (fruitObj == null) continue;
+            
+            var infoUI = fruitObj.GetComponent<FruitInfoUI>();
+            if (infoUI == null) continue;
+            
+            // 이 과일이 현재 주차에 속하는지 확인
+            bool belongsToWeek = false;
+            foreach (var fruit in weekFruits)
+            {
+                if (infoUI.id == fruit.acceptedTaskId)
+                {
+                    belongsToWeek = true;
+                    Debug.Log($"[FruitManager] 과일 매칭 발견: infoUI.id={infoUI.id} == fruit.acceptedTaskId={fruit.acceptedTaskId} (fruit.id={fruit.id})");
+                    break;
+                }
+            }
+            
+            if (belongsToWeek)
+            {
+                fruitObj.SetActive(true);
+                activatedCount++;
+                Debug.Log($"[FruitManager] 과일 활성화: infoUI.id={infoUI.id}");
+            }
+            else
+            {
+                fruitObj.SetActive(false);
+            }
+        }
+        
+        Debug.Log($"[FruitManager] {weekKey} 주차에서 {activatedCount}개 과일 활성화 완료");
+        
+        Debug.Log($"[FruitManager] 주차 {weekKey} 과일 활성화 완료: {weekFruits.Count}개");
+    }
+    
+    // 모든 주차의 과일 활성화
+    public IEnumerator ActivateAllWeeks()
+    {
+        Debug.Log("[FruitManager] ActivateAllWeeks() 호출됨");
+        
+        // 기존 과일 오브젝트들 제거
+        ClearCurrentFruits();
+        
+        // 모든 주차의 과일들을 수집
+        List<FruitData> allFruits = new List<FruitData>();
+        foreach (var weekData in weekFruitData.Values)
+        {
+            allFruits.AddRange(weekData);
+        }
+        
+        // 모든 과일 생성
+        foreach (var fruit in allFruits)
+        {
+            yield return StartCoroutine(CreateFruitFromData(fruit));
+        }
+        
+        Debug.Log($"[FruitManager] 모든 주차 과일 활성화 완료: {allFruits.Count}개");
+    }
+    
+    // 특정 주차의 과일 비활성화 (다른 주차 활성화 시 자동으로 처리됨)
+    public void DeactivateAllFruits()
+    {
+        Debug.Log("[FruitManager] DeactivateAllFruits() 호출됨");
+        
+        // 모든 과일을 비활성화 (제거하지 않음)
+        foreach (var fruitObj in currentFruitObjects)
+        {
+            if (fruitObj != null)
+            {
+                fruitObj.SetActive(false);
+            }
+        }
+    }
+    
+    // 사용 가능한 주차 목록 반환
+    public List<string> GetAvailableWeeks()
+    {
+        var availableWeeks = new List<string>(weekFruitData.Keys);
+        Debug.Log($"[FruitManager] GetAvailableWeeks() 호출됨 - {availableWeeks.Count}개 주차 반환");
+        foreach (var week in availableWeeks)
+        {
+            Debug.Log($"[FruitManager]   - '{week}'");
+        }
+        return availableWeeks;
+    }
+    
+    // 특정 주차의 과일 데이터 반환
+    public List<FruitData> GetWeekFruits(string weekKey)
+    {
+        if (weekFruitData.ContainsKey(weekKey))
+        {
+            return weekFruitData[weekKey];
+        }
+        return null;
+    }
+    
+    // 모든 과일을 생성하고 초기에는 가장 최근 주차만 활성화
+    private IEnumerator CreateAllFruitsWithInitialActivation()
+    {
+        Debug.Log("[FruitManager] CreateAllFruitsWithInitialActivation() 시작");
+        
+        // 기존 과일 오브젝트들 제거
+        ClearCurrentFruits();
+        
+        // 모든 과일을 생성하되 비활성화 상태로 시작
+        List<FruitData> allFruits = new List<FruitData>();
+        foreach (var weekData in weekFruitData.Values)
+        {
+            allFruits.AddRange(weekData);
+        }
+        
+        // 모든 과일을 생성 (비활성화 상태로)
+        foreach (var fruit in allFruits)
+        {
+            yield return StartCoroutine(CreateFruitFromDataDisabled(fruit));
+        }
+        
+        Debug.Log($"[FruitManager] 모든 과일 {allFruits.Count}개 생성 완료 (비활성화 상태)");
+        
+        // 가장 최근 주차의 과일만 활성화
+        var mostRecentWeek = GetMostRecentWeek();
+        if (mostRecentWeek != null)
+        {
+            string mostRecentWeekKey = GenerateWeekKey(mostRecentWeek.weekStart, mostRecentWeek.weekEnd);
+            Debug.Log($"[FruitManager] 가장 최근 주차 '{mostRecentWeekKey}'의 과일만 활성화합니다.");
+            
+            if (weekFruitData.ContainsKey(mostRecentWeekKey))
+            {
+                var weekFruits = weekFruitData[mostRecentWeekKey];
+                
+                // 모든 과일을 순회하면서 해당 주차의 과일들만 활성화
+                int activatedCount = 0;
+                foreach (var fruitObj in currentFruitObjects)
+                {
+                    if (fruitObj == null) continue;
+                    
+                    var infoUI = fruitObj.GetComponent<FruitInfoUI>();
+                    if (infoUI == null) continue;
+                    
+                    // 이 과일이 현재 주차에 속하는지 확인
+                    bool belongsToWeek = false;
+                    foreach (var fruit in weekFruits)
+                    {
+                        if (infoUI.id == fruit.acceptedTaskId)
+                        {
+                            belongsToWeek = true;
+                            Debug.Log($"[FruitManager] 초기 과일 매칭 발견: infoUI.id={infoUI.id} == fruit.acceptedTaskId={fruit.acceptedTaskId} (fruit.id={fruit.id})");
+                            break;
+                        }
+                    }
+                    
+                    if (belongsToWeek)
+                    {
+                        fruitObj.SetActive(true);
+                        activatedCount++;
+                        Debug.Log($"[FruitManager] 초기 과일 활성화: infoUI.id={infoUI.id}");
+                    }
+                    else
+                    {
+                        fruitObj.SetActive(false);
+                    }
+                }
+                
+                Debug.Log($"[FruitManager] 주차 {mostRecentWeekKey}에서 {activatedCount}개 과일 활성화 완료");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("[FruitManager] 가장 최근 주차를 찾을 수 없습니다.");
+        }
+    }
+    
+    // 비활성화 상태로 과일 생성
+    private IEnumerator CreateFruitFromDataDisabled(FruitData fruit)
+    {
+        Vector3 spawnPos;
+        
+        // position이 있으면 사용 (단, (0,0,0)이면 spawnPoint 사용)
+        if (fruit.position != null)
+        {
+            Vector3 positionValue = new Vector3(fruit.position.x, fruit.position.y, fruit.position.z);
+            
+            // position이 (0,0,0)이면 spawnPoint 사용
+            if (positionValue == Vector3.zero)
+            {
+                Debug.Log($"[FruitManager] Fruit {fruit.id}의 position이 (0,0,0)이므로 spawnPoint 사용");
+                spawnPos = GetBasketSpawnPosition(currentFruitObjects.Count);
+            }
+            else
+            {
+                spawnPos = positionValue;
+                Debug.Log($"[FruitManager] Fruit {fruit.id}의 position 사용: {spawnPos}");
+            }
+        }
+        // posX, posY, posZ가 모두 null이 아니면 사용 (단, (0,0,0)이면 spawnPoint 사용)
+        else if (fruit.posX.HasValue && fruit.posY.HasValue && fruit.posZ.HasValue)
+        {
+            Vector3 posValue = new Vector3(fruit.posX.Value, fruit.posY.Value, fruit.posZ.Value);
+            
+            // posX, posY, posZ가 모두 0이면 spawnPoint 사용
+            if (posValue == Vector3.zero)
+            {
+                Debug.Log($"[FruitManager] Fruit {fruit.id}의 posX, posY, posZ가 (0,0,0)이므로 spawnPoint 사용");
+                spawnPos = GetBasketSpawnPosition(currentFruitObjects.Count);
+            }
+            else
+            {
+                spawnPos = posValue;
+                Debug.Log($"[FruitManager] Fruit {fruit.id}의 posX, posY, posZ 사용: {spawnPos}");
+            }
+        }
+        // position과 posX, posY, posZ가 모두 null이면 spawnPoint 사용
+        else
+        {
+            Debug.Log($"[FruitManager] Fruit {fruit.id}의 position과 posX, posY, posZ가 모두 null입니다. spawnPoint 상태 확인:");
+            Debug.Log($"[FruitManager]   - position: {(fruit.position != null ? "있음" : "null")}");
+            Debug.Log($"[FruitManager]   - posX: {(fruit.posX.HasValue ? fruit.posX.Value.ToString() : "null")}");
+            Debug.Log($"[FruitManager]   - posY: {(fruit.posY.HasValue ? fruit.posY.Value.ToString() : "null")}");
+            Debug.Log($"[FruitManager]   - posZ: {(fruit.posZ.HasValue ? fruit.posZ.Value.ToString() : "null")}");
+            Debug.Log($"[FruitManager]   - spawnPoint: {(spawnPoint != null ? "설정됨" : "NULL!")}");
+            Debug.Log($"[FruitManager]   - spawnPoint.position: {(spawnPoint != null ? spawnPoint.position.ToString() : "N/A")}");
+            Debug.Log($"[FruitManager]   - spawnRange: {spawnRange}");
+            Debug.Log($"[FruitManager]   - currentFruitObjects.Count: {currentFruitObjects.Count}");
+            
+            // currentFruitObjects.Count를 사용하여 현재 생성된 과일 개수를 기준으로 위치 계산
+            spawnPos = GetBasketSpawnPosition(currentFruitObjects.Count);
+            Debug.Log($"[FruitManager] Fruit {fruit.id}의 position과 posX, posY, posZ가 모두 null이므로 spawnPoint에서 랜덤 위치 생성: {spawnPos}");
+        }
+
+        Debug.Log($"[FruitManager] Fruit 생성 (비활성화): id={fruit.id}, taskId={fruit.acceptedTaskId}, 위치={spawnPos}, emotion='{fruit.emotion}'");
+
+        if (fruitPrefab == null)
+        {
+            Debug.LogError("[FruitManager] fruitPrefab이 NULL입니다! Inspector에서 설정해주세요.");
+            yield break;
+        }
+
+        GameObject obj = Instantiate(fruitPrefab, spawnPos, Quaternion.identity);
+        obj.transform.SetParent(transform, worldPositionStays: true);
+        obj.transform.rotation = Quaternion.identity;
+        
+        // 비활성화 상태로 생성
+        obj.SetActive(false);
+
+        var infoUI = obj.GetComponent<FruitInfoUI>() ?? obj.AddComponent<FruitInfoUI>();
+        
+        // EmojiController 찾아서 FruitInfoUI에 설정
+        var emojiCtrl = obj.GetComponent<EmojiController>();
+        if (emojiCtrl == null)
+        {
+            emojiCtrl = obj.GetComponentInChildren<EmojiController>(false);
+        }
+        
+        if (emojiCtrl != null && infoUI.emojiController == null)
+        {
+            infoUI.emojiController = emojiCtrl;
+        }
+
+        // 임시 AcceptedTaskData 생성 (fruit 정보 기반)
+        var tempTask = new AcceptedTaskData
+        {
+            id = fruit.acceptedTaskId, // fruit.acceptedTaskId 사용 (사용자 요청에 따라)
+            todo = fruit.todo, // fruit의 실제 todo 사용
+            date = fruit.date, // fruit의 실제 date 사용
+            time = "", // time은 fruit에 없으므로 빈 문자열
+            acceptedAt = fruit.createdAt,
+            emotion = fruit.emotion
+        };
+
+        Debug.Log($"[FruitManager] tempTask 생성: id={tempTask.id} (fruit.acceptedTaskId={fruit.acceptedTaskId}), todo={tempTask.todo}, emotion={tempTask.emotion}");
+
+        infoUI.Initialize(tempTask);
+        if (infoUI.emojiController != null)
+            infoUI.emojiController.SetCurrentFruitInfoUI(infoUI);
+        
+        // emotion 값 처리
+        string emotionToUse = !string.IsNullOrEmpty(fruit.emotion) ? fruit.emotion : "";
+        
+        // 'none' 값을 빈 문자열로 처리
+        if (emotionToUse == "none" || emotionToUse == "NONE")
+        {
+            emotionToUse = "";
+            Debug.Log($"[FruitManager] Fruit {fruit.id}의 'none' 값을 빈 문자열로 변환");
+        }
+        
+        infoUI.currentEmotion = emotionToUse;
+        
+        // emotion 값이 있으면 EmojiController에 설정
+        if (!string.IsNullOrEmpty(emotionToUse))
+        {
+            StartCoroutine(SetEmotionAfterAwake(obj, emotionToUse));
+        }
+
+        currentFruitObjects.Add(obj);
+        
+        Debug.Log($"[FruitManager] Fruit 생성 완료 (비활성화): id={fruit.id}, taskId={fruit.acceptedTaskId}, 위치={spawnPos}, emotion={emotionToUse}");
+    }
 
     // FruitData로부터 과일 생성
     private IEnumerator CreateFruitFromData(FruitData fruit)
@@ -420,7 +780,7 @@ public class FruitManager : MonoBehaviour
         // 임시 AcceptedTaskData 생성 (fruit 정보 기반)
         var tempTask = new AcceptedTaskData
         {
-            id = fruit.acceptedTaskId,
+            id = fruit.acceptedTaskId, // fruit.acceptedTaskId 사용 (사용자 요청에 따라)
             todo = fruit.todo, // fruit의 실제 todo 사용
             date = fruit.date, // fruit의 실제 date 사용
             time = "", // time은 fruit에 없으므로 빈 문자열
@@ -428,7 +788,7 @@ public class FruitManager : MonoBehaviour
             emotion = fruit.emotion
         };
 
-        Debug.Log($"[FruitManager] tempTask 생성: id={tempTask.id}, todo={tempTask.todo}, emotion={tempTask.emotion}");
+        Debug.Log($"[FruitManager] tempTask 생성: id={tempTask.id} (fruit.acceptedTaskId={fruit.acceptedTaskId}), todo={tempTask.todo}, emotion={tempTask.emotion}");
 
         infoUI.Initialize(tempTask);
         if (infoUI.emojiController != null)
@@ -663,6 +1023,18 @@ public class FruitManager : MonoBehaviour
                 emojiCtrl.SetEmotion(emotion);
             }
         }
+    }
+
+    // 주차 키 생성을 위한 공통 메서드 (TreeController와 공유)
+    public static string GenerateWeekKey(string weekStart, string weekEnd)
+    {
+        // 날짜 형식을 정규화 (시간 부분 제거)
+        string normalizedStart = weekStart?.Split('T')[0] ?? weekStart;
+        string normalizedEnd = weekEnd?.Split('T')[0] ?? weekEnd;
+        
+        string weekKey = $"{normalizedStart} ~ {normalizedEnd}";
+        Debug.Log($"[FruitManager] 주차 키 생성: '{weekStart}' + '{weekEnd}' → '{weekKey}'");
+        return weekKey;
     }
 }
 
