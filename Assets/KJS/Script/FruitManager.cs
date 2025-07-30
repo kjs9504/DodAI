@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
+using System.Linq; // Added for .First()
 
 public class FruitManager : MonoBehaviour
 {
@@ -84,18 +85,18 @@ public class FruitManager : MonoBehaviour
                 // JSON에서 null 값을 제대로 처리하기 위해 fruits의 posX, posY, posZ를 수정
                 FixNullPositionValuesForNewData(rawJson, newData);
                 
-                // TreeController가 있으면 TreeController에 데이터 전달
-                var treeController = FindObjectOfType<TreeController>();
-                if (treeController != null)
-                {
-                    Debug.Log("[FruitManager] TreeController에 새로운 데이터 구조 전달");
-                    // TreeController가 자동으로 fruits를 활성화할 것입니다
-                }
-                else
-                {
-                    // TreeController가 없으면 직접 fruits 활성화
-                    yield return StartCoroutine(ActivateWeekFruits(newData.fruits));
-                }
+                // NewDataStructure의 fruits를 주차별로 저장
+                weekFruitData.Clear();
+                string weekKey = GenerateWeekKey(newData.weekStartDate, newData.weekEndDate);
+                weekFruitData[weekKey] = new List<FruitData>(newData.fruits);
+                
+                Debug.Log($"[FruitManager] NewDataStructure 주차 '{weekKey}'에서 {newData.fruits.Count}개 과일 저장");
+                Debug.Log($"[FruitManager]   - weekStartDate: '{newData.weekStartDate}', weekEndDate: '{newData.weekEndDate}'");
+                
+                // 모든 과일을 생성하되, 초기에는 해당 주차만 활성화
+                Debug.Log($"[FruitManager] NewDataStructure 모든 과일을 생성하고 해당 주차만 활성화합니다.");
+                yield return StartCoroutine(CreateAllFruitsWithInitialActivation());
+                
                 yield break;
             }
             
@@ -379,28 +380,44 @@ public class FruitManager : MonoBehaviour
             yield break;
         }
         
+        Debug.Log($"[FruitManager] 주차 {weekKey}의 데이터를 찾았습니다. 과일 활성화/비활성화 시작");
+        
         // 모든 과일을 비활성화
+        int deactivatedCount = 0;
         foreach (var fruitObj in currentFruitObjects)
         {
             if (fruitObj != null)
             {
                 fruitObj.SetActive(false);
+                deactivatedCount++;
             }
         }
+        Debug.Log($"[FruitManager] 모든 과일 {deactivatedCount}개를 비활성화했습니다.");
         
         // 해당 주차의 과일들만 활성화
         var weekFruits = weekFruitData[weekKey];
         Debug.Log($"[FruitManager] {weekKey} 주차에서 {weekFruits.Count}개 과일 찾기 시작");
         Debug.Log($"[FruitManager] 현재 생성된 과일 오브젝트 수: {currentFruitObjects.Count}");
         
+        // weekFruits의 모든 acceptedTaskId 출력
+        Debug.Log($"[FruitManager] {weekKey} 주차의 과일 acceptedTaskId들:");
+        foreach (var fruit in weekFruits)
+        {
+            Debug.Log($"[FruitManager]   - fruit.id={fruit.id}, acceptedTaskId={fruit.acceptedTaskId}, todo={fruit.todo}");
+        }
+        
         // 모든 과일을 순회하면서 해당 주차의 과일들만 활성화
         int activatedCount = 0;
+        int checkedCount = 0;
         foreach (var fruitObj in currentFruitObjects)
         {
             if (fruitObj == null) continue;
             
             var infoUI = fruitObj.GetComponent<FruitInfoUI>();
             if (infoUI == null) continue;
+            
+            checkedCount++;
+            Debug.Log($"[FruitManager] 과일 {checkedCount}번째 검사: infoUI.id={infoUI.id}, todo={infoUI.todo}");
             
             // 이 과일이 현재 주차에 속하는지 확인
             bool belongsToWeek = false;
@@ -409,7 +426,7 @@ public class FruitManager : MonoBehaviour
                 if (infoUI.id == fruit.acceptedTaskId)
                 {
                     belongsToWeek = true;
-                    Debug.Log($"[FruitManager] 과일 매칭 발견: infoUI.id={infoUI.id} == fruit.acceptedTaskId={fruit.acceptedTaskId} (fruit.id={fruit.id})");
+                    Debug.Log($"[FruitManager] ✅ 과일 매칭 발견: infoUI.id={infoUI.id} == fruit.acceptedTaskId={fruit.acceptedTaskId} (fruit.id={fruit.id})");
                     break;
                 }
             }
@@ -418,17 +435,19 @@ public class FruitManager : MonoBehaviour
             {
                 fruitObj.SetActive(true);
                 activatedCount++;
-                Debug.Log($"[FruitManager] 과일 활성화: infoUI.id={infoUI.id}");
+                Debug.Log($"[FruitManager] ✅ 과일 활성화: infoUI.id={infoUI.id}, todo={infoUI.todo}");
             }
             else
             {
                 fruitObj.SetActive(false);
+                Debug.Log($"[FruitManager] ❌ 과일 비활성화: infoUI.id={infoUI.id}, todo={infoUI.todo}");
             }
         }
         
         Debug.Log($"[FruitManager] {weekKey} 주차에서 {activatedCount}개 과일 활성화 완료");
+        Debug.Log($"[FruitManager] 총 {checkedCount}개 과일을 검사했습니다.");
         
-        Debug.Log($"[FruitManager] 주차 {weekKey} 과일 활성화 완료: {weekFruits.Count}개");
+        Debug.Log($"[FruitManager] 주차 {weekKey} 과일 활성화 완료: {weekFruits.Count}개 중 {activatedCount}개 활성화됨");
     }
     
     // 모든 주차의 과일 활성화
@@ -564,7 +583,53 @@ public class FruitManager : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("[FruitManager] 가장 최근 주차를 찾을 수 없습니다.");
+            // NewDataStructure의 경우 단일 주차이므로 해당 주차를 바로 활성화
+            if (weekFruitData.Count == 1)
+            {
+                string singleWeekKey = weekFruitData.Keys.First();
+                var weekFruits = weekFruitData[singleWeekKey];
+                
+                Debug.Log($"[FruitManager] NewDataStructure 단일 주차 '{singleWeekKey}'의 과일만 활성화합니다.");
+                
+                // 모든 과일을 순회하면서 해당 주차의 과일들만 활성화
+                int activatedCount = 0;
+                foreach (var fruitObj in currentFruitObjects)
+                {
+                    if (fruitObj == null) continue;
+                    
+                    var infoUI = fruitObj.GetComponent<FruitInfoUI>();
+                    if (infoUI == null) continue;
+                    
+                    // 이 과일이 현재 주차에 속하는지 확인
+                    bool belongsToWeek = false;
+                    foreach (var fruit in weekFruits)
+                    {
+                        if (infoUI.id == fruit.acceptedTaskId)
+                        {
+                            belongsToWeek = true;
+                            Debug.Log($"[FruitManager] NewDataStructure 초기 과일 매칭 발견: infoUI.id={infoUI.id} == fruit.acceptedTaskId={fruit.acceptedTaskId} (fruit.id={fruit.id})");
+                            break;
+                        }
+                    }
+                    
+                    if (belongsToWeek)
+                    {
+                        fruitObj.SetActive(true);
+                        activatedCount++;
+                        Debug.Log($"[FruitManager] NewDataStructure 초기 과일 활성화: infoUI.id={infoUI.id}");
+                    }
+                    else
+                    {
+                        fruitObj.SetActive(false);
+                    }
+                }
+                
+                Debug.Log($"[FruitManager] NewDataStructure 주차 {singleWeekKey}에서 {activatedCount}개 과일 활성화 완료");
+            }
+            else
+            {
+                Debug.LogWarning("[FruitManager] 가장 최근 주차를 찾을 수 없고, 단일 주차도 아닙니다.");
+            }
         }
     }
     
@@ -666,6 +731,7 @@ public class FruitManager : MonoBehaviour
         };
 
         Debug.Log($"[FruitManager] tempTask 생성: id={tempTask.id} (fruit.acceptedTaskId={fruit.acceptedTaskId}), todo={tempTask.todo}, emotion={tempTask.emotion}");
+        Debug.Log($"[FruitManager] Fruit 데이터: id={fruit.id}, acceptedTaskId={fruit.acceptedTaskId}, todo={fruit.todo}");
 
         infoUI.Initialize(tempTask);
         if (infoUI.emojiController != null)
