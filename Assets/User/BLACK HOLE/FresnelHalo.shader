@@ -1,3 +1,4 @@
+// 안전한 FresnelHalo 셰이더 (원본 기반)
 Shader "Custom/URP/FresnelHalo"
 {
     Properties

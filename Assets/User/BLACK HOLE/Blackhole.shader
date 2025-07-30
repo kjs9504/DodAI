@@ -38,8 +38,6 @@ Shader "Custom/URP/Blackhole"
         }
 
         Blend SrcAlpha OneMinusSrcAlpha
-        //Blend One One   // <- 애드티브로 바꾸고 싶으면
-
         ZWrite Off
         Cull Back
 
