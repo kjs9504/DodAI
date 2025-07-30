@@ -323,11 +323,16 @@ public class TreeController : MonoBehaviour
             OnEmotionButtonClick();
             Debug.Log($"Tree {treeIndex} 활성화: {selectedTree.emotion}");
             
-            // Fruits 활성화 (FruitManager에 전달) - 코루틴으로 호출
+            // Fruits 활성화 - 주차별 관리 방식 사용
             if (fruitManager != null && newData.fruits != null)
             {
-                StartCoroutine(fruitManager.ActivateWeekFruits(newData.fruits));
-                Debug.Log($"Fruits 활성화 시작: {newData.fruits.Count}개");
+                // 주차 키 생성 (NewDataStructure의 weekStartDate, weekEndDate 사용)
+                string weekKey = FruitManager.GenerateWeekKey(newData.weekStartDate, newData.weekEndDate);
+                Debug.Log($"[TreeController] NewDataStructure 주차 키 생성: '{weekKey}'");
+                
+                // 해당 주차의 과일만 활성화 (코루틴으로 호출)
+                StartCoroutine(fruitManager.ActivateSpecificWeek(weekKey));
+                Debug.Log($"NewDataStructure Fruits 활성화 시작: {newData.fruits.Count}개, 주차: {weekKey}");
             }
             else
             {
@@ -467,252 +472,25 @@ public class TreeController : MonoBehaviour
             }
         }
         
-        // 주차별 과일 관리 버튼 생성
-        GenerateFruitManagementButtons();
-        
         Debug.Log($"총 {generatedButtons.Count}개의 Week 버튼이 생성되었습니다.");
     }
     
-    // 주차별 과일 관리 버튼 생성
-    private void GenerateFruitManagementButtons()
-    {
-        if (fruitManager == null)
-        {
-            Debug.LogWarning("FruitManager가 할당되지 않아 과일 관리 버튼을 생성할 수 없습니다.");
-            return;
-        }
-        
-        // 사용 가능한 주차 목록 가져오기
-        List<string> availableWeeks = fruitManager.GetAvailableWeeks();
-        
-        if (availableWeeks == null || availableWeeks.Count == 0)
-        {
-            Debug.LogWarning("사용 가능한 주차가 없어 과일 관리 버튼을 생성하지 않습니다.");
-            return;
-        }
-        
-        Debug.Log($"[TreeController] 과일 관리 버튼 생성 시작 - {availableWeeks.Count}개 주차");
-        Debug.Log($"[TreeController] 사용 가능한 주차 키들:");
-        foreach (var weekKey in availableWeeks)
-        {
-            Debug.Log($"[TreeController]   - '{weekKey}'");
-        }
-        
-        // 각 주차에 대해 과일 관리 버튼 생성
-        for (int i = 0; i < availableWeeks.Count; i++)
-        {
-            string weekKey = availableWeeks[i];
-            
-            Debug.Log($"[TreeController] 과일 관리 버튼 {i} 생성: {weekKey}");
-            
-            GameObject buttonObj = Instantiate(buttonPrefab, buttonParent);
-            Button button = buttonObj.GetComponent<Button>();
-            
-            if (button != null)
-            {
-                // 버튼 텍스트 설정
-                TextMeshProUGUI buttonText = buttonObj.GetComponentInChildren<TextMeshProUGUI>();
-                if (buttonText != null)
-                {
-                    buttonText.text = $"과일: {weekKey}";
-                }
-                
-                // Date 텍스트 설정
-                Transform dateTransform = buttonObj.transform.Find("Date");
-                if (dateTransform != null)
-                {
-                    TextMeshProUGUI dateText = dateTransform.GetComponent<TextMeshProUGUI>();
-                    if (dateText != null)
-                    {
-                        dateText.text = weekKey;
-                    }
-                    else
-                    {
-                        TextMeshProUGUI childDateText = dateTransform.GetComponentInChildren<TextMeshProUGUI>();
-                        if (childDateText != null)
-                        {
-                            childDateText.text = weekKey;
-                        }
-                    }
-                    
-                    // GoodPoint 설정 (과일 개수 표시)
-                    Transform goodPointTransform = dateTransform.Find("GoodPoint");
-                    if (goodPointTransform != null)
-                    {
-                        TextMeshProUGUI goodPointText = goodPointTransform.GetComponent<TextMeshProUGUI>();
-                        if (goodPointText != null)
-                        {
-                            // 해당 주차의 과일 개수 표시
-                            var weekFruits = fruitManager.GetWeekFruits(weekKey);
-                            int fruitCount = weekFruits?.Count ?? 0;
-                            goodPointText.text = $"과일 {fruitCount}개";
-                            generatedGoodPointsTexts.Add(goodPointText);
-                        }
-                        else
-                        {
-                            generatedGoodPointsTexts.Add(null);
-                        }
-                    }
-                    else
-                    {
-                        generatedGoodPointsTexts.Add(null);
-                    }
-                }
-                else
-                {
-                    generatedGoodPointsTexts.Add(null);
-                }
-                
-                // 버튼 클릭 이벤트 설정
-                string weekKeyCopy = weekKey; // 클로저 문제 방지
-                button.onClick.AddListener(() => OnFruitManagementButtonClick(weekKeyCopy));
-                
-                // 버튼 위치 설정 (기존 버튼들 아래에 배치)
-                RectTransform rectTransform = buttonObj.GetComponent<RectTransform>();
-                if (rectTransform != null)
-                {
-                    int totalButtonIndex = generatedButtons.Count + i;
-                    rectTransform.anchoredPosition = new Vector2(0, -totalButtonIndex * (rectTransform.rect.height + buttonSpacing));
-                }
-                
-                generatedButtons.Add(button);
-                
-                Debug.Log($"[TreeController] 과일 관리 버튼 생성 완료: {weekKey}");
-            }
-        }
-        
-        // 전체 과일 비활성화 버튼 생성
-        GenerateDeactivateAllFruitsButton();
-        
-        Debug.Log($"[TreeController] 총 {availableWeeks.Count}개의 과일 관리 버튼이 생성되었습니다.");
-    }
-    
-    // 전체 과일 비활성화 버튼 생성
-    private void GenerateDeactivateAllFruitsButton()
-    {
-        if (fruitManager == null)
-        {
-            Debug.LogWarning("FruitManager가 할당되지 않아 전체 과일 비활성화 버튼을 생성할 수 없습니다.");
-            return;
-        }
-        
-        Debug.Log("[TreeController] 전체 과일 비활성화 버튼 생성");
-        
-        GameObject buttonObj = Instantiate(buttonPrefab, buttonParent);
-        Button button = buttonObj.GetComponent<Button>();
-        
-        if (button != null)
-        {
-            // 버튼 텍스트 설정
-            TextMeshProUGUI buttonText = buttonObj.GetComponentInChildren<TextMeshProUGUI>();
-            if (buttonText != null)
-            {
-                buttonText.text = "모든 과일 숨기기";
-            }
-            
-            // Date 텍스트 설정
-            Transform dateTransform = buttonObj.transform.Find("Date");
-            if (dateTransform != null)
-            {
-                TextMeshProUGUI dateText = dateTransform.GetComponent<TextMeshProUGUI>();
-                if (dateText != null)
-                {
-                    dateText.text = "전체 비활성화";
-                }
-                else
-                {
-                    TextMeshProUGUI childDateText = dateTransform.GetComponentInChildren<TextMeshProUGUI>();
-                    if (childDateText != null)
-                    {
-                        childDateText.text = "전체 비활성화";
-                    }
-                }
-                
-                // GoodPoint 설정
-                Transform goodPointTransform = dateTransform.Find("GoodPoint");
-                if (goodPointTransform != null)
-                {
-                    TextMeshProUGUI goodPointText = goodPointTransform.GetComponent<TextMeshProUGUI>();
-                    if (goodPointText != null)
-                    {
-                        goodPointText.text = "모든 과일 숨김";
-                        generatedGoodPointsTexts.Add(goodPointText);
-                    }
-                    else
-                    {
-                        generatedGoodPointsTexts.Add(null);
-                    }
-                }
-                else
-                {
-                    generatedGoodPointsTexts.Add(null);
-                }
-            }
-            else
-            {
-                generatedGoodPointsTexts.Add(null);
-            }
-            
-            // 버튼 클릭 이벤트 설정
-            button.onClick.AddListener(() => OnDeactivateAllFruitsButtonClick());
-            
-            // 버튼 위치 설정
-            RectTransform rectTransform = buttonObj.GetComponent<RectTransform>();
-            if (rectTransform != null)
-            {
-                int totalButtonIndex = generatedButtons.Count;
-                rectTransform.anchoredPosition = new Vector2(0, -totalButtonIndex * (rectTransform.rect.height + buttonSpacing));
-            }
-            
-            generatedButtons.Add(button);
-            
-            Debug.Log("[TreeController] 전체 과일 비활성화 버튼 생성 완료");
-        }
-    }
-    
-    // 과일 관리 버튼 클릭 시 호출
-    private void OnFruitManagementButtonClick(string weekKey)
-    {
-        Debug.Log($"[TreeController] 과일 관리 버튼 클릭: {weekKey}");
-        
-        if (fruitManager != null)
-        {
-            // 해당 주차의 과일만 활성화 (코루틴으로 호출)
-            StartCoroutine(fruitManager.ActivateSpecificWeek(weekKey));
-            Debug.Log($"[TreeController] {weekKey} 주차 과일 활성화 시작");
-        }
-        else
-        {
-            Debug.LogError("[TreeController] FruitManager가 할당되지 않았습니다.");
-        }
-    }
-    
-    // 전체 과일 비활성화 버튼 클릭 시 호출
-    private void OnDeactivateAllFruitsButtonClick()
-    {
-        Debug.Log("[TreeController] 전체 과일 비활성화 버튼 클릭");
-        
-        if (fruitManager != null)
-        {
-            // 모든 과일 비활성화
-            fruitManager.DeactivateAllFruits();
-            Debug.Log("[TreeController] 모든 과일 비활성화 완료");
-        }
-        else
-        {
-            Debug.LogError("[TreeController] FruitManager가 할당되지 않았습니다.");
-        }
-    }
+
     
     // Week 버튼 클릭 시 호출
     private void OnWeekButtonClick(int weekIndex)
     {
-        Debug.Log($"Week 버튼 {weekIndex} 클릭됨");
+        Debug.Log($"[TreeController] Week 버튼 {weekIndex} 클릭됨");
         
         if (weekIndex >= 0 && weekIndex < weeksDataList.Count)
         {
             currentSelectedWeekIndex = weekIndex;
             var selectedWeek = weeksDataList[weekIndex];
+            
+            Debug.Log($"[TreeController] 선택된 Week 데이터:");
+            Debug.Log($"[TreeController]   - weekStart: '{selectedWeek.weekStart}'");
+            Debug.Log($"[TreeController]   - weekEnd: '{selectedWeek.weekEnd}'");
+            Debug.Log($"[TreeController]   - fruits 개수: {selectedWeek.fruits?.Count ?? 0}");
             
             // Tree 데이터 설정
             if (selectedWeek.tree != null)
@@ -720,29 +498,35 @@ public class TreeController : MonoBehaviour
                 currentTreeData = selectedWeek.tree;
                 UpdateUI();
                 OnEmotionButtonClick();
-                Debug.Log($"Week {weekIndex}의 Tree 활성화: {selectedWeek.tree.emotion}");
+                Debug.Log($"[TreeController] Week {weekIndex}의 Tree 활성화: {selectedWeek.tree.emotion}");
+            }
+            else
+            {
+                Debug.LogWarning($"[TreeController] Week {weekIndex}의 tree가 null입니다.");
             }
             
             // 주차 키 생성 (FruitManager와 동일한 방식 사용)
             string weekKey = FruitManager.GenerateWeekKey(selectedWeek.weekStart, selectedWeek.weekEnd);
+            Debug.Log($"[TreeController] 생성된 주차 키: '{weekKey}'");
             
             // Fruits 활성화 (FruitManager의 주차별 관리 기능 사용)
             if (fruitManager != null)
             {
+                Debug.Log($"[TreeController] FruitManager가 할당되어 있습니다. ActivateSpecificWeek 호출 시작");
                 // 해당 주차의 과일만 활성화 (코루틴으로 호출)
                 StartCoroutine(fruitManager.ActivateSpecificWeek(weekKey));
-                Debug.Log($"Week {weekIndex} ({weekKey})의 Fruits 활성화 시작");
+                Debug.Log($"[TreeController] Week {weekIndex} ({weekKey})의 Fruits 활성화 코루틴 시작됨");
             }
             else
             {
-                Debug.LogWarning($"FruitManager가 없습니다. weekIndex: {weekIndex}");
+                Debug.LogError($"[TreeController] FruitManager가 NULL입니다! weekIndex: {weekIndex}");
             }
             
-            Debug.Log($"Week 버튼 {weekIndex} 처리 완료");
+            Debug.Log($"[TreeController] Week 버튼 {weekIndex} 처리 완료");
         }
         else
         {
-            Debug.LogError($"잘못된 Week 버튼 인덱스: {weekIndex}");
+            Debug.LogError($"[TreeController] 잘못된 Week 버튼 인덱스: {weekIndex} (weeksDataList.Count: {weeksDataList.Count})");
         }
     }
     
