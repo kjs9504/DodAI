@@ -13,9 +13,6 @@ public class AudioSender : MonoBehaviour
     [Header("할 일 리스트 매니저 (Inspector에서 할당)")]
     public TodoListManager todoListManager;
 
-    [Header("할 일 저장용 백엔드 URL")]
-    public string backendUrl = "http://192.168.0.58:8080/api/tasks/bulk";
-
     [Header("에러 메시지용 패널")]
     public GameObject errorPanel;               // 에러 메시지 전체 패널
     [Header("에러 메시지용 텍스트")]
@@ -69,7 +66,6 @@ public class AudioSender : MonoBehaviour
                 if (todoListManager != null)
                 {
                     todoListManager.LoadFromJson(json);
-                    StartCoroutine(SaveTasksToBackend(json));
                 }
                 else
                 {
@@ -138,23 +134,6 @@ public class AudioSender : MonoBehaviour
         // 8) 패널 비활성화
         errorText.text = "";
         errorPanel.SetActive(false);
-    }
-
-
-    public IEnumerator SaveTasksToBackend(string tasksJson)
-    {
-        var request = new UnityWebRequest(backendUrl, "POST");
-        byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(tasksJson);
-        request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-        request.downloadHandler = new DownloadHandlerBuffer();
-        request.SetRequestHeader("Content-Type", "application/json");
-
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
-            Debug.Log("✅ 백엔드 저장 성공");
-        else
-            Debug.LogError($"❌ 백엔드 저장 실패 ({request.responseCode}): {request.error}");
     }
 }
 
