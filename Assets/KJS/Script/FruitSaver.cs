@@ -48,6 +48,8 @@ public class FruitSaver : MonoBehaviour
         {
             if (fruitInfoUI == null) continue;
             
+            Debug.Log($"[FruitSaver] 과일 위치 확인: ID={fruitInfoUI.id}, 위치={fruitInfoUI.transform.position}");
+            
             var fruitData = new FruitEmotionData
             {
                 emotion = fruitInfoUI.currentEmotion ?? "",
@@ -66,7 +68,7 @@ public class FruitSaver : MonoBehaviour
             
             allFruitData.Add(fruitData);
             
-            Debug.Log($"[FruitSaver] 과일 데이터 수집: ID={fruitInfoUI.id}, 감정={fruitData.emotion}, 할일={fruitData.todo}");
+            Debug.Log($"[FruitSaver] 과일 데이터 수집: ID={fruitInfoUI.id}, 감정={fruitData.emotion}, 할일={fruitData.todo}, 위치=({fruitData.position.x}, {fruitData.position.y}, {fruitData.position.z})");
         }
         
         // 전체 데이터를 JSON으로 변환하여 저장
@@ -108,7 +110,21 @@ public class FruitSaver : MonoBehaviour
             jsonBuilder.Append("    {\n");
             jsonBuilder.Append($"      \"emotion\": \"{fruit.emotion}\",\n");
             jsonBuilder.Append($"      \"todo\": \"{fruit.todo}\",\n");
-            jsonBuilder.Append($"      \"date\": \"{fruit.date}\"\n");
+            jsonBuilder.Append($"      \"date\": \"{fruit.date}\",\n");
+            
+            // position 정보 추가
+            if (fruit.position != null)
+            {
+                jsonBuilder.Append($"      \"position\": {{\n");
+                jsonBuilder.Append($"        \"x\": {fruit.position.x},\n");
+                jsonBuilder.Append($"        \"y\": {fruit.position.y},\n");
+                jsonBuilder.Append($"        \"z\": {fruit.position.z}\n");
+                jsonBuilder.Append($"      }}\n");
+            }
+            else
+            {
+                jsonBuilder.Append($"      \"position\": null\n");
+            }
             
             if (i < fruitDataList.Count - 1)
                 jsonBuilder.Append("    },\n");
@@ -166,6 +182,8 @@ public class FruitSaver : MonoBehaviour
             return;
         }
 
+        Debug.Log($"[FruitSaver] SaveCurrentFruit: fruitInfoUI 위치 = {fruitInfoUI.transform.position}");
+
         // FruitInfoUI에서 값 읽어서 새로 DTO 생성
         var data = new FruitEmotionData
         {
@@ -182,6 +200,8 @@ public class FruitSaver : MonoBehaviour
             acceptedAt = fruitInfoUI.acceptedAt,
             createdAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
         };
+
+        Debug.Log($"[FruitSaver] SaveCurrentFruit: 생성된 position = ({data.position.x}, {data.position.y}, {data.position.z})");
 
         SaveFruitEmotion(data);
     }

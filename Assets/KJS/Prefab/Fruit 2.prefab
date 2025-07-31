@@ -2155,7 +2155,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5d80684df4893184e9402b83d9d1839b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  deleteUrl: http://http://192.168.0.58:8080/api/tasks/accepted
+  deleteUrl: http://192.168.0.58:8080/api/tasks/accepted
   manualTaskId: 0
   useManualId: 0
 --- !u!114 &6662942227410773584
