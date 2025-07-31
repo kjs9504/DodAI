@@ -1,4 +1,4 @@
-Shader "Custom/URP/Blackhole"
+Shader "Custom/URP/BlackholeXR"
 {
     Properties
     {
@@ -51,6 +51,11 @@ Shader "Custom/URP/Blackhole"
             #pragma vertex Vert
             #pragma fragment Frag
 
+            // XR 지원을 위한 multi_compile 추가
+            #pragma multi_compile_instancing
+            #pragma multi_compile _ STEREO_INSTANCING_ON STEREO_MULTIVIEW_ON
+            #pragma multi_compile _ UNITY_SINGLE_PASS_STEREO
+
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/UnityInput.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderVariablesFunctions.hlsl"
@@ -84,17 +89,24 @@ Shader "Custom/URP/Blackhole"
             struct Attributes
             {
                 float3 positionOS : POSITION;
+                UNITY_VERTEX_INPUT_INSTANCE_ID  // XR 지원
             };
 
             struct Varyings
             {
                 float4 positionHCS : SV_POSITION;
                 float3 positionOS  : TEXCOORD0;
+                UNITY_VERTEX_OUTPUT_STEREO      // XR 지원
             };
 
             Varyings Vert(Attributes IN)
             {
                 Varyings OUT;
+                
+                // XR 초기화
+                UNITY_SETUP_INSTANCE_ID(IN);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(OUT);
+                
                 VertexPositionInputs vp = GetVertexPositionInputs(float4(IN.positionOS,1));
                 OUT.positionHCS = vp.positionCS;
                 OUT.positionOS  = IN.positionOS;
@@ -121,10 +133,8 @@ Shader "Custom/URP/Blackhole"
                 float r = length(p);
                 float theta = atan2(p.y, p.x); // -PI..PI
 
-                // 시간
-                float t = _Time.y; // Unity: _Time.y = time*0.5?  (실제: ShaderVariablesFunctions.hlsl -> _TimeParameters.x=time, y=time*2, z=time*3, w=time*4; 버전에 따라 다름)
-                // 최안전: _TimeParameters.x (== time)
-                float timeSec = _TimeParameters.x;
+                // 시간 - XR에서 더 안정적인 방법 사용
+                float timeSec = _Time.y; // Unity의 _Time.y 사용
 
                 // 기본 회전 + 반경별 트위스트
                 theta += timeSec * _SpinSpeed;
@@ -155,6 +165,9 @@ Shader "Custom/URP/Blackhole"
 
             half4 Frag(Varyings IN) : SV_Target
             {
+                // XR 스테레오 설정
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(IN);
+                
                 float g = SphereGradient(IN.positionOS);
                 float n = SampleSwirl(IN.positionOS);
 
