@@ -60563,6 +60563,7 @@ GameObject:
   - component: {fileID: 1260170000}
   - component: {fileID: 1260170002}
   - component: {fileID: 1260170003}
+  - component: {fileID: 1260170004}
   m_Layer: 0
   m_Name: MicRecoder
   m_TagString: Untagged
@@ -60610,7 +60611,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea635cd905b7ac14e83d8bbb852db352, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  serverUrl: https://99442ef7ee4c.ngrok-free.app/transcribe
+  serverUrl: https://21a1bac4502a.ngrok-free.app/transcribe
   todoListManager: {fileID: 1724364730}
   errorPanel: {fileID: 1142006713}
   errorText: {fileID: 1182915968}
@@ -60711,6 +60712,25 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &1260170004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1260169999}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e700ceca8b1bf3540978b45b8a2b7542, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  requestUrl: 'https://b08001a3c4ff.ngrok-free.app/analyze '
+  requestMethod: POST
+  days: 0
+  hours: 0
+  minutes: 0
+  seconds: 10
+  persistBetweenSessions: 1
 --- !u!1 &1263203251
 GameObject:
   m_ObjectHideFlags: 0
@@ -107898,19 +107918,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3667471688001389940, guid: 2003de2a8b7f1b74ab6ce2dbbcf034c0, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3667471688001389940, guid: 2003de2a8b7f1b74ab6ce2dbbcf034c0, type: 3}
       propertyPath: m_AnchorMin.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3667471688001389940, guid: 2003de2a8b7f1b74ab6ce2dbbcf034c0, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 390
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3667471688001389940, guid: 2003de2a8b7f1b74ab6ce2dbbcf034c0, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -65
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6326957736439472993, guid: 2003de2a8b7f1b74ab6ce2dbbcf034c0, type: 3}
       propertyPath: m_Name
@@ -107918,19 +107938,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6666196550088722737, guid: 2003de2a8b7f1b74ab6ce2dbbcf034c0, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6666196550088722737, guid: 2003de2a8b7f1b74ab6ce2dbbcf034c0, type: 3}
       propertyPath: m_AnchorMin.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6666196550088722737, guid: 2003de2a8b7f1b74ab6ce2dbbcf034c0, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 91
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6666196550088722737, guid: 2003de2a8b7f1b74ab6ce2dbbcf034c0, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -12
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7144214633085959200, guid: 2003de2a8b7f1b74ab6ce2dbbcf034c0, type: 3}
       propertyPath: m_Pivot.x
